@@ -1,0 +1,206 @@
+# ==========================================================
+#   A LENDA DO SAPO GUERREIRO  🐸👑
+#   Um jogo feito no FrogCode — Frogbit Studio
+#
+#   Controles:  WASD / setas = andar   Espaço = pular
+#               E = atirar bolha       Shift = correr
+#               arraste o mouse = girar a câmera
+# ==========================================================
+
+jogo: 3D
+céu: tarde
+chão: grama 60 por 60
+luz: tarde
+
+jogador: sapo
+jogador em: 0 22
+câmera em: atrás do jogador 7 metros
+pulo do jogador: 1.6 metros
+vidas: 5
+
+# ---------- variáveis ----------
+recarga: 0
+vida_do_rei: 0
+mostrar: pontos, vidas, vida_do_rei
+
+# ---------- modelos feitos de peças ----------
+modelo cogumelo:
+  cilindro em 0 0 0 tamanho 0.35 0.9 0.35 cor bege
+  bola em 0 0.9 0 tamanho 1.3 0.6 1.3 cor vermelho
+  bola em 0.3 1.15 0.2 tamanho 0.2 cor branco
+  bola em -0.25 1.12 -0.15 tamanho 0.16 cor branco
+
+modelo rei:
+  cilindro em 0 0 0 tamanho 1.5 2.3 1.5 cor roxo
+  cone em 0 0 0 tamanho 2.2 1.2 2.2 cor preto
+  bola em 0 2.5 0 tamanho 1.2 cor cinza
+  bola em 0.25 2.6 0.5 tamanho 0.22 cor amarelo
+  bola em -0.25 2.6 0.5 tamanho 0.22 cor amarelo
+  cone em 0 3.2 0 tamanho 0.3 0.5 0.3 cor dourado
+  cone em 0.35 3.15 0 tamanho 0.25 0.4 0.25 cor dourado
+  cone em -0.35 3.15 0 tamanho 0.25 0.4 0.25 cor dourado
+  cubo em 1 1.5 0.3 tamanho 0.4 1.4 0.4 cor roxo giro 0 0 -30
+  cubo em -1 1.5 0.3 tamanho 0.4 1.4 0.4 cor roxo giro 0 0 30
+  tipo: inimigo
+
+# ---------- o vilarejo ----------
+criar casa em 14 10
+criar casa em -14 10
+criar casa em -18 -4
+criar casa em 18 -2
+criar 20 árvores espalhadas
+criar 10 pinheiros espalhados
+criar 10 pedras espalhadas
+criar 30 flores espalhadas
+repetir 8 vezes:
+  criar cogumelo em (aleatório -26 26) (aleatório -8 26)
+
+# ---------- o castelo do Rei Sombrio (no fundo do mapa) ----------
+criar parede de -10 -14 até -4 -14 cor cinza
+criar parede de 4 -14 até 10 -14 cor cinza
+criar parede de -10 -14 até -10 -28 cor cinza
+criar parede de 10 -14 até 10 -28 cor cinza
+criar parede de -10 -28 até 10 -28 cor cinza
+criar cubo chamado portão em 0 -14 tamanho 8 2.5 0.6 cor marrom sólido
+criar espinho em -6 -18
+criar espinho em 6 -18
+criar espinho em -6 -24
+criar espinho em 6 -24
+
+# ---------- coisas pra pegar ----------
+repetir 20 vezes:
+  criar moeda em (aleatório -26 26) (aleatório -10 26)
+criar 3 corações espalhados
+criar 2 estrelas espalhadas
+
+# ---------- inimigos ----------
+inimigos: andam sozinhos
+velocidade dos inimigos: 2.2
+repetir 6 vezes:
+  criar inimigo em (aleatório -26 26) (aleatório -10 12) com vida 2
+
+# ---------- missões ----------
+objetivo1: pegar 15 moedas
+objetivo2: pegar a chave
+objetivo3: derrotar o rei
+objetivo4: chegar no portal
+
+# ---------- comandos inventados ----------
+ensinar atirar:
+  criar bola chamada bolha na frente do jogador tamanho 0.35 cor azulclaro com velocidade 18 fantasma
+  som tiro
+
+# ---------- começo ----------
+quando o jogo começar:
+  mensagem "O Rei Sombrio roubou a paz do vilarejo!"
+  esperar 3 segundos
+  mensagem "Junte 15 moedas pra comprar a chave do castelo"
+  esperar 3 segundos
+  mensagem "Aperte E pra atirar bolhas!"
+
+# ---------- atirar ----------
+quando apertar e:
+  se recarga = 0:
+    atirar
+    recarga = 1
+
+a cada 0.35 segundos:
+  recarga = 0
+
+# ---------- o que acontece todo quadro ----------
+sempre:
+  para cada bolha:
+    andar isso para frente
+    se distância até jogador > 25:
+      remover isso
+
+  para cada inimigo:
+    se distância até jogador menor que 9:
+      andar isso até jogador
+
+  para cada fogo:
+    andar isso para frente
+    se distância até jogador > 30:
+      remover isso
+
+  se existe chefe:
+    se distância de chefe até jogador menor que 22:
+      andar chefe até jogador
+
+# ---------- bolhas acertando ----------
+quando bolha tocar inimigo:
+  remover isso
+  aquilo.vida - 1
+  aquilo.cor = vermelho
+  esperar 0.15 segundos
+  aquilo.cor = roxo
+  se aquilo.vida menor que 1:
+    derrotar aquilo
+    pontos + 5
+
+quando bolha tocar rei:
+  remover isso
+  aquilo.vida - 1
+  vida_do_rei = aquilo.vida
+  tremer tela
+  aquilo.cor = vermelho
+  esperar 0.15 segundos
+  aquilo.cor = roxo
+  se aquilo.vida menor que 1:
+    derrotar aquilo
+    pontos + 50
+
+quando derrotar inimigo:
+  mensagem "Inimigo derrotado! 💥"
+
+# ---------- poderes ----------
+quando pegar estrela:
+  mensagem "TURBO! ⚡"
+  velocidade do jogador: 10
+  jogador.tamanho = 1.4
+  esperar 6 segundos
+  velocidade do jogador: 5
+  jogador.tamanho = 1
+  mensagem "O turbo acabou"
+
+quando pegar coração:
+  mensagem "+1 vida ❤️"
+
+# ---------- inimigos novos de vez em quando ----------
+a cada 12 segundos:
+  se quantos inimigos menor que 8:
+    criar inimigo em (aleatório -26 26) (aleatório -10 12) com vida 2
+
+# ---------- missões ----------
+quando completar objetivo1:
+  criar chave em 0 4
+  mensagem "A chave apareceu no meio do vilarejo! 🔑"
+
+quando completar objetivo2:
+  remover portão
+  som explosao
+  tremer tela
+  céu: "#4a2060"
+  criar rei chamado chefe em 0 -24 com vida 12 e velocidade 1.8
+  vida_do_rei = 12
+  mensagem "O portão abriu... O REI SOMBRIO ACORDOU! 👑"
+
+a cada 1.6 segundos:
+  se existe chefe:
+    se distância de chefe até jogador menor que 18:
+      virar chefe para jogador
+      criar bola chamada fogo na frente do chefe tamanho 0.6 cor laranja perigoso com velocidade 9
+      som tiro
+
+quando tocar fogo:
+  remover isso
+  tremer tela
+
+quando derrotar rei:
+  céu: tarde
+  vida_do_rei = 0
+  criar portal em 0 -24
+  mensagem "O rei caiu! Entre no portal 🌀"
+
+quando completar objetivo4:
+  ganhar "O Sapo Guerreiro salvou o vilarejo! 🐸👑"

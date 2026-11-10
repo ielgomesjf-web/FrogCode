@@ -1,0 +1,324 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<title>FrogCode</title>
+<style>
+:root{
+  --fundo:#1e1e1e; --lateral:#252526; --atividade:#333333; --titulo:#3c3c3c; --aba:#2d2d2d; --borda:#3c3c3c;
+  --txt:#d4d4d4; --fraco:#8c8c8c; --sel:#37373d; --verde:#7ed957; --verde2:#2f7d32; --amarelo:#ffd400; --erro:#f14c4c; --aviso:#cca700;
+  --mono:Consolas,"Cascadia Mono","Courier New",monospace;
+}
+*{box-sizing:border-box}
+html{color-scheme:dark}
+::-webkit-scrollbar{width:10px;height:10px}::-webkit-scrollbar-thumb{background:#4a4a4a;border-radius:5px}::-webkit-scrollbar-thumb:hover{background:#5a5a5a}::-webkit-scrollbar-track,::-webkit-scrollbar-corner{background:transparent}
+#meio.modo3d #centro{--painelH:96px}
+html,body{margin:0;height:100%;background:var(--fundo);color:var(--txt);font:13px "Segoe UI",system-ui,sans-serif;overflow:hidden}
+button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
+#app{display:grid;grid-template-rows:34px 1fr 22px;height:100%}
+
+/* barra de título */
+#titulo{background:var(--titulo);display:flex;align-items:center;gap:10px;padding:0 10px;user-select:none}
+#titulo .logo{font-weight:700;font-size:14px} #titulo .logo b{color:var(--verde)} #titulo .logo i{color:var(--amarelo);font-style:normal}
+#titulo .nome{flex:1;text-align:center;color:var(--fraco)}
+.btn{padding:4px 12px;border-radius:4px;background:#4a4a4a}
+.btn:hover{background:#5a5a5a}
+.btn.rodar{background:var(--verde2);color:#fff;font-weight:600} .btn.rodar:hover{background:#38963c}
+
+#meio{display:grid;grid-template-columns:48px 230px minmax(200px,1fr) 6px var(--jogoW,44%);min-height:0}
+#meio.semlateral{grid-template-columns:48px 0 minmax(200px,1fr) 6px var(--jogoW,44%)}
+#meio.semlateral #lateral{visibility:hidden;overflow:hidden}
+#meio.modo3d{grid-template-columns:48px 0 minmax(320px,1fr) 6px var(--jogoW3d,26%)}
+#meio.modo3d #lateral{visibility:hidden;overflow:hidden}
+
+/* barra de atividade */
+#atividade{background:var(--atividade);display:flex;flex-direction:column;align-items:center;padding-top:4px}
+#atividade button{width:48px;height:48px;font-size:22px;opacity:.55;border-left:2px solid transparent}
+#atividade button:hover{opacity:.9}
+#atividade button.ativo{opacity:1;border-left-color:var(--verde)}
+
+/* lateral */
+#lateral{background:var(--lateral);overflow:auto;min-width:0}
+#lateral h2{font-size:11px;font-weight:600;letter-spacing:1px;color:#bbb;margin:0;padding:10px 12px 8px;display:flex;align-items:center;justify-content:space-between}
+#lateral h2 span button{opacity:.7;padding:0 4px;font-size:14px} #lateral h2 span button:hover{opacity:1}
+.item{padding:3px 12px 3px 20px;cursor:pointer;display:flex;align-items:center;gap:6px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.item:hover{background:#2a2d2e} .item.ativo{background:var(--sel)}
+.item .x{margin-left:auto;opacity:0;font-size:12px} .item:hover .x{opacity:.7}
+.dica{color:var(--fraco);padding:8px 14px;font-size:12px;line-height:1.5}
+
+/* centro: abas + editor + painel */
+#centro{display:grid;grid-template-rows:35px 1fr var(--painelH,150px);min-width:0;min-height:0}
+#barraAbas{display:flex;background:#252526;min-width:0}
+#abas{display:flex;overflow-x:auto;overflow-y:hidden;flex:1;min-width:0}
+#vistas{display:flex;gap:2px;align-items:center;padding:0 6px;flex:none}
+#vistas button{padding:4px 10px;border-radius:4px;color:var(--fraco);font-size:12px}
+#vistas button:hover{background:#ffffff14;color:#fff}
+#vistas button.ativo{background:var(--verde2);color:#fff}
+.vista{position:absolute;inset:0;display:none;flex-direction:column;background:var(--fundo)}
+.ferr{height:34px;display:flex;align-items:center;gap:2px;padding:0 6px;background:#2a2a2a;border-bottom:1px solid var(--borda);flex:none;overflow:hidden}
+.ferr button{padding:4px 9px;border-radius:4px;font-size:12px;white-space:nowrap}
+.ferr button:hover{background:#ffffff14} .ferr button.on{background:#04395e;color:#fff}
+.ferr button.verde{background:var(--verde2);color:#fff}
+.ferr .sep{width:1px;height:18px;background:var(--borda);margin:0 4px} .ferr .esp{flex:1}
+.coord{color:var(--fraco);font:12px var(--mono);margin-right:8px}
+.vista .corpo{flex:1;display:flex;min-height:0}
+.palco3d{position:relative;flex:1;min-width:0;background:#1b1f24}
+.palco3d canvas{position:absolute;inset:0;width:100%;height:100%;outline:none;display:block}
+.vista .lado{width:225px;flex:none;border-left:1px solid var(--borda);background:var(--lateral);overflow:auto;display:flex;flex-direction:column}
+.vista .lista{width:150px;flex:none;border-right:1px solid var(--borda);background:var(--lateral);overflow:auto;padding-bottom:10px}
+.vista h3{font-size:11px;letter-spacing:1px;color:#bbb;margin:0;padding:10px 12px 6px;font-weight:600}
+.vista .fraco{color:var(--fraco);font-size:12px;padding:0 12px;line-height:1.5}
+.vista p{padding:0 12px;font-size:12.5px;line-height:1.5}
+.vista code{font-family:var(--mono);background:#1e1e1e;padding:0 4px;border-radius:3px;color:#ce9178}
+#inspetor{border-bottom:1px solid var(--borda);padding-bottom:10px}
+#hierarquia{flex:1}
+.vista .item{padding:3px 12px;cursor:pointer;display:flex;gap:6px;white-space:nowrap;overflow:hidden;font-size:12.5px}
+.vista .item span{margin-left:auto;color:var(--fraco);font-size:11px}
+.vista .item:hover{background:#2a2d2e} .vista .item.ativo{background:#04395e}
+.campos{display:flex;gap:6px;padding:4px 12px}
+.campos label,.vista label.linha{display:flex;flex-direction:column;font-size:11px;color:var(--fraco);gap:2px;flex:1;min-width:0}
+.vista label.linha{padding:4px 12px}
+.vista input,.vista select{background:#3c3c3c;border:1px solid #555;color:#fff;border-radius:3px;padding:3px 5px;font:12px var(--mono);width:100%;min-width:0}
+.tres{display:flex;gap:4px;padding:2px 12px}
+.rotulo{font-size:11px;color:var(--fraco);padding:8px 12px 2px}
+.cores{display:flex;flex-wrap:wrap;gap:3px;padding:2px 12px}
+.cores button{width:20px;height:20px;border-radius:4px;border:1px solid #0006;font-size:10px;color:#fff}
+.cores button.sel{outline:2px solid var(--amarelo);outline-offset:1px}
+.botoes{display:flex;flex-wrap:wrap;gap:4px;padding:10px 12px 0}
+.btn.largo{display:block;width:calc(100% - 24px);margin:6px 12px;text-align:center}
+.btn.perigo:hover{background:#a1260d}
+.btn.verdao{background:var(--verde2);color:#fff;font-weight:600}.btn.verdao:hover{background:#38963c}
+.paleta{height:62px;flex:none;display:flex;align-items:center;gap:2px;padding:0 6px;background:#252526;border-top:1px solid var(--borda);overflow-x:auto}
+.paleta .rot{font-size:10px;letter-spacing:1px;color:var(--fraco);margin-right:4px;writing-mode:vertical-rl;transform:rotate(180deg)}
+.paleta button{display:flex;flex-direction:column;align-items:center;justify-content:center;min-width:58px;height:52px;border-radius:6px;font-size:22px}
+.paleta button small{font-size:10px;color:var(--fraco);margin-top:2px}
+.paleta button:hover{background:#ffffff14}
+.aviso-cena{position:absolute;left:10px;right:10px;top:10px;background:#5a1d1dee;color:#fff;padding:6px 10px;border-radius:6px;font-size:12px}
+.fino{display:flex;align-items:center;gap:6px;padding:2px 12px}
+.fino input[type=range]{flex:1;accent-color:#7ed957;padding:0;border:0;background:none}
+.fino button,.empurra button,.tamcena button{background:#3c3c3c;border-radius:6px;min-width:34px;height:30px;font-size:15px}
+.fino button:active,.empurra button:active,.tamcena button:active{background:#04395e}
+.uniVal{font:12px var(--mono);color:#fff;min-width:34px;text-align:right}
+.empurra{display:grid;grid-template-columns:repeat(3,1fr);gap:4px;padding:2px 12px}
+.empurra button{font-size:13px}
+.tamcena{display:flex;gap:4px;padding:2px 12px}
+.vazio3d{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:var(--fraco);pointer-events:none}
+#abas::-webkit-scrollbar{height:3px}
+.aba{display:flex;align-items:center;gap:6px;padding:0 10px 0 12px;background:var(--aba);color:var(--fraco);border-right:1px solid #252526;cursor:pointer;white-space:nowrap;border-top:1px solid transparent}
+.aba.ativa{background:var(--fundo);color:#fff;border-top-color:var(--verde)}
+.aba .fechar{opacity:0;width:18px;height:18px;border-radius:3px;line-height:16px} .aba:hover .fechar,.aba.ativa .fechar{opacity:.7}
+.aba .fechar:hover{background:#ffffff22}
+#area{position:relative;min-height:0}
+
+#edwrap{position:absolute;inset:0;display:flex;background:var(--fundo)}
+#gutter{width:52px;padding:8px 10px 8px 0;text-align:right;color:#858585;font:14px/21px var(--mono);overflow:hidden;user-select:none;white-space:pre}
+#gutter .e{color:var(--erro)} #gutter .a{color:var(--aviso)}
+#ed{position:relative;flex:1;min-width:0}
+#hl,#src{position:absolute;inset:0;margin:0;padding:8px 12px;font:14px/21px var(--mono);white-space:pre;tab-size:2;overflow:auto;border:0}
+#hl{pointer-events:none;color:var(--txt)}
+#src{background:transparent;color:transparent;caret-color:#aeafad;resize:none;outline:none}
+#src::selection{background:#264f78aa}
+.k{color:#569cd6} .b{color:#c586c0} .c{color:#c586c0} .co{color:#4ec9b0} .n{color:#b5cea8} .s{color:#ce9178} .cm{color:#6a9955;font-style:italic} .v{color:#9cdcfe}
+.sqe{text-decoration:underline wavy var(--erro);text-underline-offset:4px} .sqa{text-decoration:underline wavy var(--aviso);text-underline-offset:4px}
+#auto{position:absolute;z-index:5;background:#252526;border:1px solid #454545;box-shadow:0 4px 14px #0008;font:13px/22px var(--mono);min-width:260px;display:none}
+#auto div{padding:0 10px;cursor:pointer;white-space:pre} #auto div.sel{background:#04395e}
+#auto div b{color:var(--verde);font-weight:normal}
+
+#manualview{position:absolute;inset:0;overflow:auto;background:var(--fundo);padding:24px 40px 60px;display:none;line-height:1.6;font-size:14px}
+#manualview .cap{max-width:780px;margin:0 auto 34px}
+#manualview h1{color:var(--verde);font-size:28px;margin:0 0 4px} #manualview .sub{color:var(--fraco);margin-bottom:26px}
+#manualview h3{font-size:20px;color:var(--amarelo);border-bottom:1px solid var(--borda);padding-bottom:6px}
+#manualview h4{color:#9cdcfe;margin:16px 0 4px}
+#manualview code{font-family:var(--mono);background:#2d2d2d;padding:1px 5px;border-radius:3px;color:#ce9178}
+#manualview kbd{font-family:var(--mono);background:#333;border:1px solid #555;border-bottom-width:2px;border-radius:4px;padding:0 5px;font-size:12px}
+.exbox{background:#181818;border:1px solid var(--borda);border-radius:6px;margin:10px 0;overflow:hidden}
+.exbox pre{margin:0;padding:10px 14px;font:13.5px/20px var(--mono);white-space:pre-wrap}
+.exbox .bar{display:flex;gap:6px;justify-content:flex-end;background:#222;padding:4px 6px;border-top:1px solid var(--borda)}
+.exbox .bar button{font-size:12px;padding:2px 10px;border-radius:3px;background:#333} .exbox .bar button:hover{background:#444}
+.exbox .bar button.t{background:var(--verde2);color:#fff}
+
+#painel{border-top:1px solid var(--borda);display:flex;flex-direction:column;min-height:0;background:var(--fundo)}
+#painel .abasp{display:flex;gap:18px;padding:0 14px;height:30px;align-items:center;font-size:11px;letter-spacing:1px;flex:none}
+#painel .abasp button{color:var(--fraco);padding:6px 0;border-bottom:1px solid transparent}
+#painel .abasp button.ativo{color:#fff;border-bottom-color:var(--verde)}
+#painel .abasp .cont{background:#4d4d4d;border-radius:8px;padding:0 6px;margin-left:4px;font-size:10px}
+#painel .conteudo{flex:1;overflow:auto;padding:2px 14px 8px;font:13px/20px var(--mono)}
+.prob{cursor:pointer;padding:1px 4px;border-radius:3px} .prob:hover{background:#2a2d2e}
+.prob .l{color:var(--fraco)} .ok{color:var(--verde)} .er{color:var(--erro)}
+
+/* divisória e jogo */
+#divisor{background:#252526;cursor:col-resize} #divisor:hover{background:var(--verde2)}
+#jogo{display:flex;flex-direction:column;min-width:0;background:#141414;border-left:1px solid var(--borda)}
+#jogo .topo{height:35px;display:flex;align-items:center;gap:6px;padding:0 10px;font-size:11px;letter-spacing:1px;color:#bbb;background:#252526;flex:none}
+#jogo .topo .esp{flex:1}
+#palco{position:relative;flex:1;min-height:0;overflow:hidden}
+#cv{position:absolute;inset:0;width:100%;height:100%;outline:none;display:block}
+#vazio{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;color:var(--fraco);text-align:center;padding:20px}
+#vazio .grande{font-size:56px}
+#hud{position:absolute;inset:0;pointer-events:none;font-family:"Trebuchet MS","Segoe UI",sans-serif;color:#fff;text-shadow:0 2px 3px #000a}
+.hud-vars{position:absolute;left:12px;top:10px;font-size:20px;font-weight:700;line-height:1.35}
+.hud-vars span{color:var(--amarelo)}
+.hud-obj{position:absolute;top:10px;right:12px;max-width:60%;overflow:hidden;text-overflow:ellipsis;background:#000a;padding:6px 16px;border-radius:20px;font-size:17px;white-space:nowrap}
+.hud-obj b{color:var(--verde)}
+.hud-msg{position:absolute;top:32%;left:0;right:0;text-align:center;font-size:30px;font-weight:800;animation:sobe .3s}
+.hud-dica{position:absolute;bottom:12px;left:0;right:0;text-align:center;font-size:14px;opacity:.9}
+.hud-fim{position:absolute;inset:0;background:#000b;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;font-size:40px;font-weight:800;color:#ff8a80;text-align:center;padding:20px}
+.hud-fim.ganhou{color:var(--amarelo)} .hud-fim small{font-size:17px;color:#fff;font-weight:400}
+@keyframes sobe{from{transform:translateY(12px);opacity:0}}
+#jogo:fullscreen #palco{height:100%}
+
+#status{background:var(--verde2);color:#fff;display:flex;align-items:center;gap:16px;padding:0 10px;font-size:12px;user-select:none}
+#status .esp{flex:1}
+#status button{padding:0 4px}
+
+/* ---------- controles de toque (jogo) ---------- */
+#toque{display:none;position:absolute;inset:0;pointer-events:none;z-index:3}
+body.toque #toque{display:block}
+#joy{position:absolute;left:18px;bottom:18px;width:130px;height:130px;border-radius:50%;background:#ffffff1a;border:2px solid #ffffff40;pointer-events:auto;touch-action:none}
+#joyBola{position:absolute;left:50%;top:50%;width:56px;height:56px;margin:-28px 0 0 -28px;border-radius:50%;background:#ffffff66;border:2px solid #fff9}
+#botoesToque{position:absolute;right:18px;bottom:22px;display:flex;gap:14px;align-items:flex-end;pointer-events:none}
+#botoesToque button{pointer-events:auto;touch-action:none;width:74px;height:74px;border-radius:50%;background:#ffffff26;border:2px solid #ffffff59;color:#fff;font-size:28px;font-weight:800}
+#botoesToque #tE{width:60px;height:60px;font-size:22px;margin-bottom:40px}
+#botoesToque button.on{background:#7ed95788}
+
+/* ---------- modo celular (tela estreita) ---------- */
+#navCel,#selArq{display:none}
+body.celular #app{grid-template-rows:46px 1fr 60px}
+body.celular #status,body.celular #atividade,body.celular #lateral,body.celular #divisor,body.celular #barraAbas,body.celular #titulo .nome,body.celular #titulo .logo span,body.celular #bParar{display:none}
+body.celular #titulo{gap:8px;padding:0 8px}
+body.celular #selArq{display:block;flex:1;min-width:0;background:#2d2d2d;color:#fff;border:1px solid #555;border-radius:6px;padding:6px;font-size:14px}
+body.celular #titulo .btn{padding:8px 14px;font-size:15px}
+body.celular #meio{display:flex;flex-direction:column;min-height:0}
+body.celular #centro{flex:1;grid-template-rows:1fr auto;min-height:0}
+body.celular #painel{height:84px}
+body.celular[data-aba="jogo"] #centro{display:none}
+body.celular:not([data-aba="jogo"]) #jogo{display:none}
+body.celular #jogo{flex:1;border:0}
+body.celular[data-aba="cena"] #painel,body.celular[data-aba="modelos"] #painel,body.celular[data-aba="manual"] #painel{display:none}
+body.celular #navCel{display:flex;background:#252526;border-top:1px solid var(--borda);padding-bottom:env(safe-area-inset-bottom)}
+#navCel button{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;font-size:22px;color:var(--fraco);gap:1px}
+#navCel button small{font-size:11px}
+#navCel button.ativo{color:#fff;background:#ffffff10;box-shadow:inset 0 2px 0 var(--verde)}
+body.celular #gutter{width:34px;padding-right:6px;font-size:13px}
+body.celular #hl,body.celular #src{font-size:14px;padding:8px}
+body.celular #manualview{padding:14px 14px 40px;font-size:15px}
+body.celular .vista .corpo{flex-direction:column}
+body.celular .vista .lado{width:auto;height:42%;border-left:0;border-top:1px solid var(--borda)}
+body.celular .vista .lista{width:auto;max-height:52px;display:flex;align-items:center;overflow-x:auto;overflow-y:hidden;border-right:0;border-bottom:1px solid var(--borda);padding:0 6px;gap:4px}
+body.celular .vista .lista h3,body.celular .vista .lista p{display:none}
+body.celular .vista .lista .item{flex:none;border-radius:16px;background:#333;padding:6px 12px}
+body.celular .vista .lista .btn.largo{width:auto;margin:0;flex:none}
+body.celular .ferr{height:44px;overflow-x:auto}
+body.celular .ferr button{font-size:13px;padding:8px 10px}
+body.celular .coord{display:none}
+body.celular .paleta{height:66px}
+body.celular .vista input,body.celular .vista select{font-size:15px;padding:6px}
+body.celular .cores button{width:28px;height:28px}
+body.celular .fino button,body.celular .empurra button,body.celular .tamcena button{height:38px;min-width:44px}
+body.celular .vista .item{padding:7px 12px}
+body.celular #hierarquia{display:none}
+body.celular .hud-vars{font-size:16px}
+body.celular .hud-obj{font-size:13px;max-width:55%;white-space:normal;text-align:right}
+body.celular .hud-msg{font-size:22px}
+</style>
+</head>
+<body>
+<div id="app">
+  <div id="titulo">
+    <span class="logo">🐸 <b>Frog</b><i>Code</i></span>
+    <span class="nome" id="nomeTitulo"></span>
+    <select id="selArq" title="Trocar de jogo"></select>
+    <button class="btn rodar" id="bRodar" title="F5 ou Ctrl+Enter">▶ Rodar</button>
+    <button class="btn" id="bParar">■ Parar</button>
+  </div>
+  <div id="meio">
+    <nav id="atividade">
+      <button data-v="arquivos" title="Arquivos">📄</button>
+      <button data-v="manual" title="Manual">📖</button>
+      <button data-v="exemplos" title="Exemplos">🎮</button>
+    </nav>
+    <aside id="lateral"></aside>
+    <section id="centro">
+      <div id="barraAbas"><div id="abas"></div><div id="vistas"><button data-vista="codigo">📝 Código</button><button data-vista="cena">🎬 Cena</button><button data-vista="modelos">🧱 Modelos</button></div></div>
+      <div id="area">
+        <div id="edwrap">
+          <div id="gutter"></div>
+          <div id="ed">
+            <pre id="hl" aria-hidden="true"></pre>
+            <textarea id="src" spellcheck="false" wrap="off" autocapitalize="off" autocomplete="off"></textarea>
+            <div id="auto"></div>
+          </div>
+        </div>
+        <div id="manualview"></div>
+        <div id="cenaview" class="vista">
+          <div class="ferr" id="cenaFerr">
+            <button data-a="translate" title="Mover (W)">✋ Mover</button><button data-a="rotate" title="Girar (E)">🔄 Girar</button><button data-a="scale" title="Tamanho (R)">⤢ Tamanho</button>
+            <span class="sep"></span><button data-a="grade" title="Encaixar de 0,5 em 0,5 metro">🧲 Grade</button><button data-a="focar" title="Focar (F)">🎯 Focar</button>
+            <span class="sep"></span><button data-a="duplicar" title="Ctrl+D">⧉ Duplicar</button><button data-a="apagar" title="Delete">🗑 Apagar</button><button data-a="desfazer" title="Ctrl+Z">↶ Desfazer</button>
+            <span class="esp"></span><span id="cenaCoord" class="coord"></span><button data-a="rodar" class="verde">▶ Jogar</button>
+          </div>
+          <div class="corpo">
+            <div id="cenaPalco" class="palco3d"><canvas id="cenaCv" tabindex="0"></canvas><div id="cenaAviso" class="aviso-cena" style="display:none"></div></div>
+            <div class="lado"><div id="inspetor"></div><div id="hierarquia"></div></div>
+          </div>
+          <div id="paleta" class="paleta"></div>
+        </div>
+        <div id="modeloview" class="vista">
+          <div class="ferr" id="modFerr">
+            <button data-a="tudo" title="Selecionar o modelo inteiro (A)">🔲 Tudo</button><span class="sep"></span><button data-a="translate" title="Mover (W)">✋ Mover</button><button data-a="rotate" title="Girar (E)">🔄 Girar</button><button data-a="scale" title="Esticar (R)">⤢ Esticar</button>
+            <span class="sep"></span><button data-a="duplicar" title="Ctrl+D">⧉ Duplicar</button><button data-a="espelhar" title="Copia do outro lado">🪞 Espelhar</button><button data-a="apagar" title="Delete">🗑 Apagar</button><button data-a="desfazer" title="Ctrl+Z">↶ Desfazer</button>
+          </div>
+          <div class="corpo">
+            <div id="modLista" class="lista"></div>
+            <div id="modPalco" class="palco3d"><canvas id="modCv" tabindex="0"></canvas><div id="modVazio" class="vazio3d">Nenhum modelo ainda — clique em <b>＋ Novo modelo</b></div></div>
+            <div class="lado"><div id="modInsp"></div></div>
+          </div>
+          <div id="modPecas" class="paleta"></div>
+        </div>
+      </div>
+      <div id="painel">
+        <div class="abasp">
+          <button data-p="prob" class="ativo">PROBLEMAS<span class="cont" id="nProb">0</span></button>
+          <button data-p="saida">SAÍDA</button>
+        </div>
+        <div class="conteudo" id="pProb"></div>
+        <div class="conteudo" id="pSaida" style="display:none"></div>
+      </div>
+    </section>
+    <div id="divisor"></div>
+    <section id="jogo">
+      <div class="topo">JOGO <span class="esp"></span><button class="btn" id="bCheia" title="Tela cheia">⛶</button></div>
+      <div id="palco">
+        <canvas id="cv" tabindex="0"></canvas>
+        <div id="hud"></div>
+        <div id="vazio"><div class="grande">🐸</div><div>Aperte <b>▶ Rodar</b> pra ver seu jogo aqui</div></div>
+        <div id="toque">
+          <div id="joy"><div id="joyBola"></div></div>
+          <div id="botoesToque"><button id="tE" data-k="e">E</button><button id="tPular" data-k="espaco">⤒</button></div>
+        </div>
+      </div>
+    </section>
+  </div>
+  <nav id="navCel">
+    <button data-aba="codigo">📝<small>Código</small></button><button data-aba="cena">🎬<small>Cena</small></button><button data-aba="modelos">🧱<small>Modelos</small></button><button data-aba="jogo">🎮<small>Jogo</small></button><button data-aba="manual">📖<small>Manual</small></button>
+  </nav>
+  <footer id="status">
+    <button id="stProb">❌ 0 &nbsp;⚠ 0</button>
+    <span id="stModo"></span>
+    <span class="esp"></span>
+    <span id="stPos">Ln 1, Col 1</span>
+    <span>FrogCode</span>
+  </footer>
+</div>
+<input type="file" id="arqPC" accept=".frog,.txt" hidden>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/TransformControls.js"></script>
+<script src="linguagem.js"></script>
+<script src="manual.js"></script>
+<script>if (window.THREE) { document.write('<script src="modelos.js"><\/script><script src="motor.js"><\/script><script src="cena.js"><\/script>'); }</script>
+<script src="editor.js"></script>
+</body>
+</html>
