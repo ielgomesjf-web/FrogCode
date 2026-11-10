@@ -274,6 +274,7 @@ function inspetor(soNumeros) {
   if (o.linha) h += `<p class="fraco">linha ${o.linha} do código</p>`;
   if (o.multi) {
     h += `<p>Essa linha cria <b>${o.no.qtd}</b> objetos em lugares sorteados.</p>
+      <div class="botoes"><button class="btn perigo" data-acao="apagar1">🗑 Apagar só este</button><button class="btn perigo" data-acao="apagar">🗑 Apagar todos (${o.no.qtd})</button></div>
       <button class="btn largo" data-acao="fixar">📌 Fixar onde estão (vira ${o.no.qtd} linhas que dá pra arrastar)</button>`;
   } else if (!o.editavel && !o.deAte && !o.ehJogador) {
     h += `<p>🔒 Esse objeto é criado por uma conta, um <b>repetir</b> ou um <b>quando</b>. Pra mudar, mexa no código.</p>`;
@@ -294,7 +295,7 @@ function inspetor(soNumeros) {
   h += '<div class="botoes">';
   if (o.linha) h += '<button class="btn" data-acao="codigo">📝 Ver no código</button>';
   if (o.editavel || o.deAte) h += '<button class="btn" data-acao="duplicar">⧉ Duplicar</button>';
-  if (o.linha) h += '<button class="btn perigo" data-acao="apagar">🗑 Apagar</button>';
+  if (o.linha && !o.multi) h += '<button class="btn perigo" data-acao="apagar">🗑 Apagar</button>';
   h += '</div>';
   el.innerHTML = h;
   el.querySelectorAll('input[data-c]').forEach(i => i.addEventListener('change', () => campoMudou(i.dataset.c, i.value)));
@@ -305,6 +306,7 @@ function inspetor(soNumeros) {
     if (a === 'codigo') IDE().irParaCodigo(o.linha);
     else if (a === 'duplicar') duplicar();
     else if (a === 'apagar') apagar();
+    else if (a === 'apagar1') apagar(true);
     else if (a === 'fixar') fixar(o);
   });
 }
@@ -371,9 +373,13 @@ function duplicar() {
   mudarTexto(L2 => { L2.splice(o.linha, 0, raw); n = o.linha + 1; return L2; }, false);
   montar(n);
 }
-function apagar() {
+async function apagar(soEste) {
   const o = sel; if (!o || !o.linha) return;
-  if (o.multi && !confirm(`Essa linha cria ${o.no.qtd} objetos. Apagar todos?`)) return;
+  if (o.multi && soEste) { // "criar 10 moedas" vira "criar 9 moedas"
+    trocarLinha(o.linha, raw => raw.replace(/^(\s*criar\s+)(\d+)/i, (m, a, n) => a + Math.max(1, +n - 1)), false);
+    sel = null; montar(null); return;
+  }
+  if (o.multi && !(await IDE().confirmar(`Essa linha cria ${o.no.qtd} objetos.\nApagar todos eles?`, 'Apagar todos'))) return;
   sel = null;
   mudarTexto(L => { L.splice(o.linha - 1, 1); return L; }, false);
   montar(null);
@@ -677,8 +683,8 @@ const modelos = (() => {
     if (pecas.length === 1) { IDE().saida('O modelo precisa de pelo menos uma peça'); return; }
     grupo.remove(selP); pecas = pecas.filter(p => p !== selP); escolher(null); escrever();
   }
-  function novo() {
-    const n = prompt('Nome do modelo novo (ex: robô, carro, árvore mágica):', 'boneco'); if (!n) return;
+  async function novo() {
+    const n = await IDE().pedirNome('Nome do modelo novo (ex: robô, carro, árvore mágica):', 'boneco'); if (!n) return;
     const nome = FC.semAcento(n.trim().replace(/\s+/g, '_')).replace(/[^a-z0-9_]/g, ''); if (!nome) return;
     mudarTexto(L => { while (L.length && !L[L.length - 1].trim()) L.pop(); L.push('', `modelo ${n.trim().replace(/\s+/g, '_')}:`, '  cubo em 0 0.5 0 tamanho 1 cor verde'); return L; }, false);
     atual = nome; recarregar();

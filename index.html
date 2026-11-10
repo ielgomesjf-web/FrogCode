@@ -87,7 +87,7 @@ button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
 .cores button.sel{outline:2px solid var(--amarelo);outline-offset:1px}
 .botoes{display:flex;flex-wrap:wrap;gap:4px;padding:10px 12px 0}
 .btn.largo{display:block;width:calc(100% - 24px);margin:6px 12px;text-align:center}
-.btn.perigo:hover{background:#a1260d}
+.btn.perigo{color:#ff9a8a}.btn.perigo:hover{background:#a1260d;color:#fff}
 .btn.verdao{background:var(--verde2);color:#fff;font-weight:600}.btn.verdao:hover{background:#38963c}
 .paleta{height:62px;flex:none;display:flex;align-items:center;gap:2px;padding:0 6px;background:#252526;border-top:1px solid var(--borda);overflow-x:auto}
 .paleta .rot{font-size:10px;letter-spacing:1px;color:var(--fraco);margin-right:4px;writing-mode:vertical-rl;transform:rotate(180deg)}
@@ -221,6 +221,14 @@ body.celular #hierarquia{display:none}
 body.celular .hud-vars{font-size:16px}
 body.celular .hud-obj{font-size:13px;max-width:55%;white-space:normal;text-align:right}
 body.celular .hud-msg{font-size:22px}
+#dialogo{position:fixed;inset:0;background:#000a;display:flex;align-items:center;justify-content:center;z-index:50;padding:20px}
+#dialogo[hidden]{display:none}
+#dialogo .caixa{background:#252526;border:1px solid #555;border-radius:12px;padding:18px;max-width:380px;width:100%;box-shadow:0 10px 40px #000a}
+#dlgMsg{font-size:15px;line-height:1.5;margin-bottom:12px;white-space:pre-line}
+#dlgTxt{width:100%;font-size:16px;padding:8px 10px;border-radius:6px;border:1px solid #666;background:#3c3c3c;color:#fff;margin-bottom:12px}
+#dialogo .bts{display:flex;gap:8px;justify-content:flex-end}
+#dialogo .bts .btn{padding:9px 16px;font-size:14px}
+#dialogo .bts .perigo{background:#a1260d;color:#fff}
 </style>
 </head>
 <body>
@@ -312,6 +320,7 @@ body.celular .hud-msg{font-size:22px}
   </footer>
 </div>
 <input type="file" id="arqPC" accept=".frog,.txt" hidden>
+<div id="dialogo" hidden><div class="caixa"><div id="dlgMsg"></div><input id="dlgTxt" type="text" autocomplete="off"><div class="bts"><button class="btn" id="dlgNao">Cancelar</button><button class="btn rodar" id="dlgSim">OK</button></div></div></div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>

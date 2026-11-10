@@ -6,6 +6,35 @@ const src = $('#src'), hl = $('#hl'), gutter = $('#gutter'), auto = $('#auto');
 const esc = s => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 const sa = FC.semAcento;
 
+// ---------------- caixinha própria (o celular às vezes bloqueia a do navegador) ----------------
+function caixinha(msg, { texto = null, ok = 'OK', perigo = false } = {}) {
+  return new Promise(resolve => {
+    const d = $('#dialogo'), t = $('#dlgTxt'), sim = $('#dlgSim'), nao = $('#dlgNao');
+    $('#dlgMsg').textContent = msg;
+    t.hidden = texto === null; t.value = texto ?? '';
+    sim.textContent = ok; sim.classList.toggle('perigo', perigo); sim.classList.toggle('rodar', !perigo);
+    d.hidden = false; setTimeout(() => (texto === null ? sim : t).focus(), 30);
+    const fim = v => { d.hidden = true; sim.onclick = nao.onclick = t.onkeydown = null; resolve(v); };
+    sim.onclick = () => fim(texto === null ? true : t.value.trim() || null);
+    nao.onclick = () => fim(texto === null ? false : null);
+    t.onkeydown = e => { if (e.key === 'Enter') sim.onclick(); if (e.key === 'Escape') nao.onclick(); };
+  });
+}
+const pedirNome = (msg, padrao) => caixinha(msg, { texto: padrao });
+const confirmar = (msg, ok = 'Apagar') => caixinha(msg, { ok, perigo: true });
+async function apagarArquivo(nome) {
+  if (!(await confirmar(`Apagar o jogo "${nome.replace(/\.frog$/, '')}"?\nNão dá pra desfazer.`))) return;
+  delete E.arquivos[nome]; fecharAba(nome); desenharLateral();
+}
+async function renomearArquivo(nome) {
+  const novo = await pedirNome('Novo nome do jogo:', nome.replace(/\.frog$/, ''));
+  if (!novo) return;
+  const n2 = nomeLivre(novo); E.arquivos[n2] = E.arquivos[nome]; delete E.arquivos[nome];
+  E.abertos = E.abertos.map(a => a === nome ? n2 : a); if (E.ativo === nome) E.ativo = n2;
+  src.dataset.arq = ''; guardar(); mostrarAtivo();
+}
+async function jogoNovo() { const n = await pedirNome('Nome do jogo novo:', 'jogo novo'); if (n) novoArquivo(n, '# ' + n + '\njogo: 3D\njogador: sapo\n'); }
+
 // ---------------- arquivos (guardados no navegador) ----------------
 let E = { arquivos: {}, abertos: [], ativo: null, painel: 'prob', lateral: 'arquivos', vista: 'codigo' };
 function carregarEstado() {
@@ -72,6 +101,7 @@ function mostrarAtivo() {
 document.querySelectorAll('#vistas button').forEach(b => b.onclick = () => { E.vista = b.dataset.vista; guardar(); mostrarAtivo(); });
 // ponte pras telas Cena e Modelos (elas mexem no código através daqui)
 window.FrogIDE = {
+  confirmar, pedirNome,
   texto: () => (E.ativo && !ehManual(E.ativo) ? E.arquivos[E.ativo] : '') || '',
   setTexto(t) { if (!E.ativo || ehManual(E.ativo)) return; t = t.replace(/\r\n?/g, '\n'); E.arquivos[E.ativo] = t; src.value = t; src.dataset.arq = E.ativo; guardar(); checar(); },
   analisar: () => FC.analisar((E.ativo && E.arquivos[E.ativo]) || ''),
@@ -92,20 +122,14 @@ function desenharLateral() {
       d.innerHTML = `🐸 <span>${esc(nome)}</span><button class="x" title="Apagar">🗑</button>`;
       d.onclick = e => {
         if (e.target.classList.contains('x')) {
-          if (confirm(`Apagar "${nome}"? Não dá pra desfazer.`)) { delete E.arquivos[nome]; fecharAba(nome); desenharLateral(); }
+          apagarArquivo(nome);
         } else abrir(nome);
       };
-      d.ondblclick = () => {
-        const novo = prompt('Novo nome do arquivo:', nome.replace(/\.frog$/, ''));
-        if (!novo) return;
-        const n2 = nomeLivre(novo); E.arquivos[n2] = E.arquivos[nome]; delete E.arquivos[nome];
-        E.abertos = E.abertos.map(a => a === nome ? n2 : a); if (E.ativo === nome) E.ativo = n2;
-        src.dataset.arq = ''; guardar(); mostrarAtivo();
-      };
+      d.ondblclick = () => renomearArquivo(nome);
       L.appendChild(d);
     }
     L.insertAdjacentHTML('beforeend', '<div class="dica">Clique pra abrir · duplo clique pra mudar o nome<br>Tudo é salvo sozinho no navegador. Use ⬇ pra guardar no computador.</div>');
-    $('#lNovo').onclick = () => { const n = prompt('Nome do jogo novo:', 'jogo novo'); if (n) novoArquivo(n, '# ' + n + '\njogo: 3D\njogador: sapo\n'); };
+    $('#lNovo').onclick = jogoNovo;
     $('#lPC').onclick = () => $('#arqPC').click();
     $('#lBaixar').onclick = baixar;
   } else if (E.lateral === 'manual') {
@@ -440,12 +464,15 @@ mqCel.addEventListener?.('change', aplicarCelular); mqToque.addEventListener?.('
 function atualizarSelArq() {
   const s = $('#selArq'), nomes = Object.keys(E.arquivos).sort();
   s.innerHTML = nomes.map(n => `<option value="${esc(n)}" ${n === E.ativo ? 'selected' : ''}>🐸 ${esc(n.replace(/\.frog$/, ''))}</option>`).join('') +
-    '<option value="__novo">＋ Novo jogo…</option><optgroup label="Exemplos">' + Object.keys(EXEMPLOS).map(n => `<option value="__ex:${esc(n)}">🎮 ${esc(n.replace(/\.frog$/, ''))}</option>`).join('') + '</optgroup>';
+    '<option value="__novo">＋ Novo jogo…</option>' + (E.ativo && !ehManual(E.ativo) ? '<option value="__ren">✏️ Mudar o nome deste jogo…</option><option value="__apagar">🗑 Apagar este jogo…</option>' : '') + '<optgroup label="Exemplos">' + Object.keys(EXEMPLOS).map(n => `<option value="__ex:${esc(n)}">🎮 ${esc(n.replace(/\.frog$/, ''))}</option>`).join('') + '</optgroup>';
   if (ehManual(E.ativo)) s.value = E.abertos.find(x => !ehManual(x)) || nomes[0];
 }
 $('#selArq').onchange = e => {
   const v = e.target.value;
-  if (v === '__novo') { const n = prompt('Nome do jogo novo:', 'jogo novo'); if (n) novoArquivo(n, '# ' + n + '\njogo: 3D\njogador: sapo\n'); }
+  const atual = E.ativo;
+  if (v === '__novo') { atualizarSelArq(); jogoNovo(); return; }
+  if (v === '__ren') { atualizarSelArq(); renomearArquivo(atual); return; }
+  if (v === '__apagar') { atualizarSelArq(); apagarArquivo(atual); return; }
   else if (v.startsWith('__ex:')) novoArquivo(v.slice(5), EXEMPLOS[v.slice(5)]);
   else abrir(v);
   if (document.body.dataset.aba === 'manual' || document.body.dataset.aba === 'jogo') irAba('codigo');
