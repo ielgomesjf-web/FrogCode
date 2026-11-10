@@ -223,12 +223,20 @@ body.celular .hud-obj{font-size:13px;max-width:55%;white-space:normal;text-align
 body.celular .hud-msg{font-size:22px}
 #dialogo{position:fixed;inset:0;background:#000a;display:flex;align-items:center;justify-content:center;z-index:50;padding:20px}
 #dialogo[hidden]{display:none}
+#dlgGuia{position:fixed;inset:0;background:#000a;display:flex;align-items:center;justify-content:center;z-index:50;padding:16px}
+#dlgGuia .caixa{background:#252526;border:1px solid #555;border-radius:12px;padding:16px;max-width:620px;width:100%}
+#dlgGuia textarea{width:100%;height:50vh;background:#1e1e1e;color:#ddd;border:1px solid #555;border-radius:6px;font:12px var(--mono);padding:8px;margin:8px 0 12px}
+#dlgGuia .bts{display:flex;justify-content:flex-end}
 #dialogo .caixa{background:#252526;border:1px solid #555;border-radius:12px;padding:18px;max-width:380px;width:100%;box-shadow:0 10px 40px #000a}
 #dlgMsg{font-size:15px;line-height:1.5;margin-bottom:12px;white-space:pre-line}
 #dlgTxt{width:100%;font-size:16px;padding:8px 10px;border-radius:6px;border:1px solid #666;background:#3c3c3c;color:#fff;margin-bottom:12px}
 #dialogo .bts{display:flex;gap:8px;justify-content:flex-end}
 #dialogo .bts .btn{padding:9px 16px;font-size:14px}
 #dialogo .bts .perigo{background:#a1260d;color:#fff}
+.guiaIA{display:flex;gap:12px;align-items:center;background:#1f2a3a;border:1px solid #2f4a6a;border-radius:10px;padding:12px 14px;margin:0 0 6px}
+.guiaIA p{margin:0;font-size:13px;color:#b8c7d9;flex:1}
+.guiaIA .btn{white-space:nowrap;background:#2f6fb0;color:#fff;font-weight:600;padding:9px 14px}
+body.celular .guiaIA{flex-direction:column;align-items:stretch}
 </style>
 </head>
 <body>
@@ -327,6 +335,7 @@ body.celular .hud-msg{font-size:22px}
 <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/TransformControls.js"></script>
 <script src="linguagem.js"></script>
 <script src="manual.js"></script>
+<script src="guia.js"></script>
 <script>if (window.THREE) { document.write('<script src="modelos.js"><\/script><script src="motor.js"><\/script><script src="cena.js"><\/script>'); }</script>
 <script src="editor.js"></script>
 </body>

@@ -170,6 +170,27 @@ function montarManual() {
   let h = '<div class="cap"><h1>📖 Manual do FrogCode</h1><div class="sub">Tudo que a linguagem sabe fazer. Clique em <b>▶ Testar</b> pra ver um exemplo rodando, ou em <b>Copiar</b> pra colar no seu jogo.</div></div>';
   for (const c of MANUAL) h += `<div class="cap" id="cap-${c.id}"><h3>${c.titulo}</h3>${c.html}</div>`;
   mv.innerHTML = h;
+  // botão do guia pra IA, logo no começo do manual
+  mv.querySelector('.cap').insertAdjacentHTML('beforeend', '<div class="guiaIA"><p>🤖 <b>Vai aprender com o Claude ou outra IA?</b> Ela não conhece o FrogCode. Copie o guia e cole na conversa antes de perguntar — aí ela só ensina comandos que existem.</p><button class="btn" id="bGuia">🤖 Copiar guia pra IA</button></div>');
+  $('#bGuia').onclick = async () => {
+    const b = $('#bGuia'), txt = window.FROG_GUIA || '';
+    let ok = false;
+    try { await navigator.clipboard.writeText(txt); ok = true; } catch (e) {
+      const t = document.createElement('textarea'); t.value = txt; t.style.position = 'fixed'; t.style.opacity = '0'; document.body.appendChild(t); t.select();
+      try { ok = document.execCommand('copy'); } catch (e2) { } t.remove();
+    }
+    if (!ok) { // navegador não deixou copiar sozinho: mostra o guia pra copiar na mão
+      const d = document.createElement('div'); d.id = 'dlgGuia';
+      d.innerHTML = '<div class="caixa"><div id="dlgMsg">Seu navegador não deixou eu copiar sozinho. Segure o dedo no texto → <b>Selecionar tudo</b> → <b>Copiar</b>:</div><textarea readonly></textarea><div class="bts"><button class="btn rodar">Fechar</button></div></div>';
+      document.body.appendChild(d);
+      const t = d.querySelector('textarea'); t.value = txt; t.focus(); t.select();
+      d.querySelector('button').onclick = () => d.remove();
+      b.textContent = '🤖 Copiar guia pra IA'; return;
+    }
+    b.textContent = '✔ Copiado! Agora cole na IA';
+    saida('🤖 Guia copiado — cole na conversa com a IA antes de perguntar.', 'ok');
+    setTimeout(() => b.textContent = '🤖 Copiar guia pra IA', 3000);
+  };
   mv.querySelectorAll('pre').forEach(pre => {
     const box = document.createElement('div'); box.className = 'exbox';
     pre.replaceWith(box); box.appendChild(pre);

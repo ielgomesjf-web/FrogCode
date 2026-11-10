@@ -23,6 +23,8 @@ quando pegar moeda:
 - **🎮 Jogo**: roda na hora; no celular aparece joystick
 - **📖 Manual**: tudo explicado, com exemplos pra testar
 
+**🤖 Aprendendo com uma IA (Claude, etc.)?** Ela não conhece o FrogCode. Cole o [GUIA-IA.md](GUIA-IA.md) na conversa antes de perguntar (ou use o botão *Copiar guia pra IA* no Manual).
+
 Funciona no computador e no celular. Os jogos ficam salvos no próprio navegador (use ⬇ pra guardar um arquivo `.frog`).
 
 Feito com [three.js](https://threejs.org).
