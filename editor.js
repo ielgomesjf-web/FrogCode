@@ -167,7 +167,8 @@ $('#arqPC').onchange = async e => { const f = e.target.files[0]; if (!f) return;
 // ---------------- manual ----------------
 function montarManual() {
   const mv = $('#manualview');
-  let h = '<div class="cap"><h1>📖 Manual do FrogCode</h1><div class="sub">Tudo que a linguagem sabe fazer. Clique em <b>▶ Testar</b> pra ver um exemplo rodando, ou em <b>Copiar</b> pra colar no seu jogo.</div></div>';
+  const versao = document.querySelector('meta[name="frogcode-versao"]')?.content || '?';
+  let h = '<div class="cap"><h1>📖 Manual do FrogCode</h1><div class="sub" style="margin:-4px 0 8px;font-size:12px">versão ' + versao + '</div><div class="sub">Tudo que a linguagem sabe fazer. Clique em <b>▶ Testar</b> pra ver um exemplo rodando, ou em <b>Copiar</b> pra colar no seu jogo.</div></div>';
   for (const c of MANUAL) h += `<div class="cap" id="cap-${c.id}"><h3>${c.titulo}</h3>${c.html}</div>`;
   mv.innerHTML = h;
   // botão do guia pra IA, logo no começo do manual
