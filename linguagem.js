@@ -315,12 +315,13 @@ class Parser {
       if (no.tipo === 'modelo') {
         if (this.prof > 0) throw erro('"modelo" fica no começo da linha, fora de outros blocos');
         this.emModelo = true;
-        try { no.partes = this.filhos(l); } finally { this.emModelo = false; }
+        // modelo pode começar vazio (sem nenhuma peça embaixo)
+        const temPecas = this.i < this.L.length && this.L[this.i].ind > l.ind;
+        try { no.partes = temPecas ? this.filhos(l) : []; } finally { this.emModelo = false; }
         const tipo = no.partes.find(x => x.tipo === 'tipoModelo');
         no.fim = Math.max(l.n, ...no.partes.map(x => x.n || 0)); no.cabecalho = l.raw;
         no.cat = tipo ? tipo.cat : 'solido';
         no.partes = no.partes.filter(x => x.tipo === 'parte');
-        if (!no.partes.length) throw erro('O modelo precisa de pelo menos uma peça (cubo, bola, cone, cilindro ou pirâmide)');
         return no;
       }
       if (resto.trim()) { const a = this.acao(preparar(resto.trim()), l); a.n = l.n; no.corpo = [a]; }

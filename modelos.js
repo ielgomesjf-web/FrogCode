@@ -214,6 +214,7 @@ function forma(tipo, cor = '#9e9e9e', tam = [1, 1, 1]) {
 // modelo montado pelo jogador com várias peças
 function montar(partes) {
   const g = new T.Group();
+  if (!partes.length) return { cor: null, g, caixa: [0.6, 0.6, 0.6], raio: 0.3 }; // modelo ainda vazio
   for (const p of partes) {
     const m = malha(geoForma(p.forma), mat(p.cor));
     m.scale.set(p.tam[0], p.tam[1], p.tam[2]);

@@ -680,13 +680,12 @@ const modelos = (() => {
   }
   function apagarP() {
     if (!selP) return;
-    if (pecas.length === 1) { IDE().saida('O modelo precisa de pelo menos uma peça'); return; }
     grupo.remove(selP); pecas = pecas.filter(p => p !== selP); escolher(null); escrever();
   }
   async function novo() {
     const n = await IDE().pedirNome('Nome do modelo novo (ex: robô, carro, árvore mágica):', 'boneco'); if (!n) return;
     const nome = FC.semAcento(n.trim().replace(/\s+/g, '_')).replace(/[^a-z0-9_]/g, ''); if (!nome) return;
-    mudarTexto(L => { while (L.length && !L[L.length - 1].trim()) L.pop(); L.push('', `modelo ${n.trim().replace(/\s+/g, '_')}:`, '  cubo em 0 0.5 0 tamanho 1 cor verde'); return L; }, false);
+    mudarTexto(L => { while (L.length && !L[L.length - 1].trim()) L.pop(); L.push('', `modelo ${n.trim().replace(/\s+/g, '_')}:`); return L; }, false);
     atual = nome; recarregar();
   }
   window.__escolherPeca = i => escolher(pecas[i]);
