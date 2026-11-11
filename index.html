@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
 <title>FrogCode</title>
-<meta name="frogcode-versao" content="2026.11.11-3">
+<meta name="frogcode-versao" content="2026.11.11-4">
 <style>
 :root{
   --fundo:#1e1e1e; --lateral:#252526; --atividade:#333333; --titulo:#3c3c3c; --aba:#2d2d2d; --borda:#3c3c3c;
@@ -238,6 +238,18 @@ body.celular .hud-msg{font-size:22px}
 .guiaIA p{margin:0;font-size:13px;color:#b8c7d9;flex:1}
 .guiaIA .btn{white-space:nowrap;background:#2f6fb0;color:#fff;font-weight:600;padding:9px 14px}
 body.celular .guiaIA{flex-direction:column;align-items:stretch}
+.btn.pub{background:#2f6fb0;color:#fff;font-weight:600}.btn.pub:hover{background:#3a82cc}
+#dlgPub{position:fixed;inset:0;background:#000b;display:flex;align-items:center;justify-content:center;z-index:50;padding:16px}
+#dlgPub .caixa{position:relative;background:#252526;border:1px solid #555;border-radius:12px;padding:18px 20px;max-width:560px;width:100%;max-height:92vh;overflow:auto;box-shadow:0 10px 40px #000a;line-height:1.5}
+#dlgPub h2{margin:0 0 10px;font-size:19px;color:var(--verde)} #dlgPub h3{margin:16px 0 4px;font-size:15px;color:var(--amarelo)}
+#dlgPub p{margin:6px 0;font-size:14px} #dlgPub .fraco{color:var(--fraco);font-size:13px}
+#dlgPub .link{width:100%;height:64px;background:#1e1e1e;color:#9cdcfe;border:1px solid #555;border-radius:6px;font:12px var(--mono);padding:6px;resize:none}
+#dlgPub .bts{display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap;margin-top:6px} #dlgPub .bts.esq{justify-content:flex-start}
+#dlgPub .bts .btn{padding:9px 14px;font-size:14px;text-decoration:none;display:inline-block}
+#dlgPub .x{position:absolute;right:10px;top:8px;font-size:18px;opacity:.7} #dlgPub a{color:#6ec8ff}
+#dlgPub .passos{margin:8px 0 0;padding-left:20px;font-size:13.5px} #dlgPub .passos li{margin:3px 0}
+#dlgPub code{font-family:var(--mono);background:#1e1e1e;padding:0 4px;border-radius:3px;color:#ce9178}
+body.celular #bPublicar{padding:8px 12px;font-size:0} body.celular #bPublicar::before{content:"🌐";font-size:17px}
 </style>
 </head>
 <body>
@@ -247,6 +259,7 @@ body.celular .guiaIA{flex-direction:column;align-items:stretch}
     <span class="nome" id="nomeTitulo"></span>
     <select id="selArq" title="Trocar de jogo"></select>
     <button class="btn rodar" id="bRodar" title="F5 ou Ctrl+Enter">▶ Rodar</button>
+    <button class="btn pub" id="bPublicar" title="Transformar o jogo num link e num arquivo pro itch.io">🌐 Publicar</button>
     <button class="btn" id="bParar">■ Parar</button>
   </div>
   <div id="meio">
@@ -334,10 +347,11 @@ body.celular .guiaIA{flex-direction:column;align-items:stretch}
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/TransformControls.js"></script>
-<script src="linguagem.js?v=2026.11.11-3"></script>
-<script src="manual.js?v=2026.11.11-3"></script>
-<script src="guia.js?v=2026.11.11-3"></script>
-<script>if (window.THREE) { document.write('<script src="modelos.js?v=2026.11.11-3"><\/script><script src="motor.js?v=2026.11.11-3"><\/script><script src="cena.js?v=2026.11.11-3"><\/script>'); }</script>
-<script src="editor.js?v=2026.11.11-3"></script>
+<script src="linguagem.js?v=2026.11.11-4"></script>
+<script src="manual.js?v=2026.11.11-4"></script>
+<script src="guia.js?v=2026.11.11-4"></script>
+<script src="publicar.js?v=2026.11.11-4"></script>
+<script>if (window.THREE) { document.write('<script src="modelos.js?v=2026.11.11-4"><\/script><script src="motor.js?v=2026.11.11-4"><\/script><script src="cena.js?v=2026.11.11-4"><\/script>'); }</script>
+<script src="editor.js?v=2026.11.11-4"></script>
 </body>
 </html>

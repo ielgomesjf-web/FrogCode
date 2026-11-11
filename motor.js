@@ -979,11 +979,11 @@ class Motor {
         pos.y = Math.max(pos.y, 0.4); break;
       }
       case 'cima':
-        if (c.modo === 'cima') { orto = d * 0.6; pos = V(alvo.x, 60, alvo.z); olhar = V(alvo.x, 0, alvo.z); }
+        if (c.modo === 'cima') { orto = Math.max(d * 0.6, d * 0.6 / Math.max(this.aspect, 0.3)); pos = V(alvo.x, 60, alvo.z); olhar = V(alvo.x, 0, alvo.z); }
         else pos = V(alvo.x, alvo.y + d, alvo.z + d * 0.45);
         break;
       case 'lado':
-        if (c.modo === 'lado') { orto = d * 0.6; const y = Math.max(alvo.y + 0.5, orto - 1.5); pos = V(alvo.x, y, 60); olhar = V(alvo.x, y, 0); }
+        if (c.modo === 'lado') { orto = Math.max(d * 0.6, d * 0.75 / Math.max(this.aspect, 0.3)); /* celular em pé: afasta pra ver dos lados */ const y = Math.max(alvo.y + 0.5, orto * 0.5); pos = V(alvo.x, y, 60); olhar = V(alvo.x, y, 0); }
         else pos = V(alvo.x, alvo.y + d * 0.3, alvo.z + d);
         break;
       case 'fixa': pos = V(...cam.pos); break;

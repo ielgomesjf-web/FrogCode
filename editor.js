@@ -103,6 +103,7 @@ document.querySelectorAll('#vistas button').forEach(b => b.onclick = () => { E.v
 window.FrogIDE = {
   confirmar, pedirNome,
   texto: () => (E.ativo && !ehManual(E.ativo) ? E.arquivos[E.ativo] : '') || '',
+  nome: () => (E.ativo && !ehManual(E.ativo) ? E.ativo : (E.abertos.find(x => !ehManual(x)) || 'jogo')),
   setTexto(t) { if (!E.ativo || ehManual(E.ativo)) return; t = t.replace(/\r\n?/g, '\n'); E.arquivos[E.ativo] = t; src.value = t; src.dataset.arq = E.ativo; guardar(); checar(); },
   analisar: () => FC.analisar((E.ativo && E.arquivos[E.ativo]) || ''),
   irParaCodigo(n) { E.vista = 'codigo'; guardar(); mostrarAtivo(); setTimeout(() => irPara(n), 0); },
@@ -363,6 +364,7 @@ function rodarPrograma(r, nome) {
 function parar() { if (motor) motor.parar(); $('#vazio').style.display = 'flex'; saida('■ Parado'); }
 $('#bRodar').onclick = rodar;
 $('#bParar').onclick = parar;
+$('#bPublicar').onclick = () => { if (ehManual(E.ativo)) { const f = E.abertos.find(x => !ehManual(x)); if (f) abrir(f); } window.FrogPublicar?.abrir(); };
 $('#bCheia').onclick = () => { $('#jogo').requestFullscreen?.(); $('#cv').focus(); };
 document.addEventListener('keydown', e => {
   if (e.key === 'F5' || (e.key === 'Enter' && (e.ctrlKey || e.metaKey))) { e.preventDefault(); rodar(); }
