@@ -666,6 +666,7 @@ class Motor {
   dano(queda, de) {
     const j = this.jog;
     if (j.inv > 0 && !queda) return;
+    if (!queda && this.jogObj && this.jogObj.props.invencivel) return; // jogador.invencível = sim
     this.vars.set('vidas', (+this.vars.get('vidas') || 0) - 1);
     j.inv = 1.5; this.tremor = 0.35; SOM.dano();
     if (de) {

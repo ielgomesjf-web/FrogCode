@@ -5,7 +5,7 @@
 const T = window.THREE, FC = window.FrogCode;
 const $ = s => document.querySelector(s);
 const esc = s => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-const f = v => String(Math.round(v * 100) / 100 || 0);
+const f = v => { const d = Math.abs(v) < 0.1 ? 1000 : 100; return String(Math.round(v * d) / d || 0); }; // coisa pequena ganha 3 casas, senão vira 0
 const NUM = '-?\\d+(?:\\.\\d+)?';
 const IDE = () => window.FrogIDE;
 
@@ -442,6 +442,7 @@ const modelos = (() => {
     tcM.addEventListener('dragging-changed', e => { orbitM.enabled = !e.value; if (!e.value) escrever(); });
     tcM.addEventListener('objectChange', () => {
       if (tudo) { if (tcM.mode === 'scale') { const sc = tudo.scale, v = [sc.x, sc.y, sc.z].sort((a, b) => Math.abs(b - 1) - Math.abs(a - 1))[0]; sc.setScalar(Math.max(0.05, v)); } return; }
+      if (selP && tcM.mode === 'scale') selP.scale.set(...['x', 'y', 'z'].map(k => Math.max(0.005, selP.scale[k]))); // nunca negativo nem zero
       painel(true);
     });
     cena.add(tcM);

@@ -127,7 +127,10 @@ class Conta {
   expr() { if (this.acabou()) throw erro('Faltou um valor aqui'); return this.ou(); }
   ou() { let a = this.e(); while (this.eId('ou')) { this.i++; a = { t: 'bin', op: 'ou', a, b: this.e() }; } return a; }
   e() { let a = this.nao(); while (this.eId('e')) { this.i++; a = { t: 'bin', op: 'e', a, b: this.nao() }; } return a; }
-  nao() { if (this.eId('nao')) { this.i++; return { t: 'nao', a: this.nao() }; } return this.cmp(); }
+  nao() {
+    if (this.eId('nao')) { this.i++; if (this.acabou()) return { t: 'val', v: false }; return { t: 'nao', a: this.nao() }; } // "não" sozinho = falso
+    return this.cmp();
+  }
   cmp() {
     const a = this.soma(), x = this.peek();
     if (x && x.t === 'op' && ['=', '==', '!=', '<', '>', '<=', '>='].includes(x.v)) { this.i++; return { t: 'bin', op: x.v === '==' ? '=' : x.v, a, b: this.soma() }; }
@@ -352,6 +355,7 @@ class Parser {
       else if (k === 'giro' || k === 'girado') { const n = nums(); no.giro = n.length === 3 ? n : [0, n[0] || 0, 0]; }
       else throw erro(`Não entendi "${k}" nessa peça (use: em, tamanho, cor, giro)`);
     }
+    no.tam = no.tam.map(v => Math.max(0.005, Math.abs(v))); // tamanho negativo ou 0 vira positivo pequeno
     return no;
   }
 

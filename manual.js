@@ -319,7 +319,7 @@ zé.tamanho = 2
 zé.giro = 90
 zé.visível = falso</pre>
 <p>Toda coisa tem: <code>x</code>, <code>y</code> (altura), <code>z</code>, <code>giro</code> (graus), <code>tamanho</code>, <code>cor</code>, <code>visível</code>, <code>velocidade</code>, <code>pulo</code> + as que você inventar.
-O <b>jogador</b> também: <code>jogador.x</code>, <code>jogador.velocidade = 10</code>.
+O <b>jogador</b> também: <code>jogador.x</code>, <code>jogador.velocidade = 10</code>, e <code>jogador.invencível = sim</code> (inimigo e espinho não tiram vida; <code>= não</code> volta ao normal).
 Usar o nome de um tipo mexe em todos: <code>inimigos.cor = azul</code>.</p>
 
 <h4>Mexer</h4>

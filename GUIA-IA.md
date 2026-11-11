@@ -80,7 +80,7 @@ quando completar objetivo1:
 
 ## Controle total (mandar em cada objeto)
 - Propriedades com ponto: `zé.x = 10`, `zé.vida - 1`, `zé.cor = vermelho`, `zé.tamanho = 2`, `zé.giro = 90`, `zé.visível = falso`
-- Toda coisa tem x, y (altura), z, giro, tamanho, cor, visível, velocidade, pulo + as inventadas com "com". O jogador também: `jogador.velocidade = 10`. Nome de tipo mexe em todos: `inimigos.cor = azul`.
+- Toda coisa tem x, y (altura), z, giro, tamanho, cor, visível, velocidade, pulo + as inventadas com "com". O jogador também: `jogador.velocidade = 10`. `jogador.invencível = sim` faz inimigo e espinho não tirarem vida (`= não` volta ao normal). Nome de tipo mexe em todos: `inimigos.cor = azul`.
 - `mover zé para frente 2` (pula na hora: frente, trás, esquerda, direita, cima, baixo) · `mover zé 3 0`
 - `andar zé para frente` · `andar isso até jogador` · `andar isso para longe do jogador` (andar usa a velocidade dele; use dentro de `sempre:`)
 - `pular zé` · `girar zé 90` · `virar zé para jogador`
