@@ -26,6 +26,8 @@ body.toque #toque{display:block}
 #botoes button{pointer-events:auto;touch-action:none;width:74px;height:74px;border-radius:50%;background:#ffffff26;border:2px solid #ffffff59;color:#fff;font-size:28px;font-weight:800}
 #botoes button.on{background:#7ed95788}
 #botoes [data-k=e]{width:60px;height:60px;font-size:22px;margin-bottom:40px}
+#botoes [data-k=j],#botoes [data-k=k]{width:62px;height:62px;font-size:26px;margin-bottom:70px}
+#botoes button[hidden]{display:none}
 body.toque .hud-dica{bottom:150px}
 #capa{position:fixed;inset:0;background:radial-gradient(circle at 50% 35%,#1d3a1a,#0b0e12 70%);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:18px;text-align:center;padding:24px;z-index:5}
 #capa h1{margin:0;font-size:clamp(28px,7vw,56px);color:#7ed957;text-shadow:0 4px 0 #0006}
@@ -38,7 +40,7 @@ body.jogando .marca{bottom:auto;top:auto;right:8px;bottom:6px;opacity:.5}
 </style>`);
 document.body.insertAdjacentHTML('beforeend', `
 <div id="palco"><canvas id="cv" tabindex="0"></canvas><div id="hud"></div>
-  <div id="toque"><div id="joy"><div id="joyBola"></div></div><div id="botoes"><button data-k="e">E</button><button data-k="espaco">⤒</button></div></div>
+  <div id="toque"><div id="joy"><div id="joyBola"></div></div><div id="botoes"><button data-k="j" hidden>👅</button><button data-k="k" hidden>💨</button><button data-k="e">E</button><button data-k="espaco">⤒</button></div></div>
 </div>
 <div id="capa"><h1 id="titulo">🐸</h1><div class="sub" id="sub">carregando…</div><button id="bJogar" hidden>▶ Jogar</button></div>
 <a class="marca" href="https://ielgomesjf-web.github.io/FrogCode/" target="_blank">feito com FrogCode 🐸 · faça o seu</a>`);
@@ -81,6 +83,8 @@ async function lerJogo() {
     motor = new Motor($('#cv'), $('#hud'), { erro: e => { $('#hud').insertAdjacentHTML('beforeend', `<div class="hud-fim"><div>Deu erro no jogo 😵</div><small>linha ${e.linha}: ${String(e.message).replace(/</g, '&lt;')}</small></div>`); } });
     motor.manterTeclas = document.body.classList.contains('toque');
     motor.carregar(prog);
+    document.querySelector('#botoes [data-k=j]').hidden = !motor.cfg.hab.has('linguada');
+    document.querySelector('#botoes [data-k=k]').hidden = !motor.cfg.hab.has('investida');
     $('#cv').focus();
   };
   // joystick e botões

@@ -1,0 +1,46 @@
+# Kroad: treino primordial
+# Fase de teste da Etapa 1 (Ribbat: Origem)
+# J = linguada (segure perto de um galho pra balançar) · K = investida
+
+jogo: 2D de lado
+céu: tarde
+chão: grama 120
+jogador: sapo cor verdeescuro
+jogador em: -55 0
+habilidades: linguada, investida
+pulo do jogador: 2
+vidas: 5
+mostrar: moscas, cristais, vidas
+inimigos: andam sozinhos
+
+# moscas pra pegar com a linguada
+criar mosca em -50 1.5
+criar mosca em -48 2.2
+criar mosca em -46 1.5
+
+# um Tarpotchi no caminho e uma rocha rachada (investida!)
+criar inimigo em -42 0
+criar rocha em -37 0
+
+# totem: se cair, volta daqui
+criar totem em -33 0
+
+# vagem-mola até o cristal lá em cima
+criar vagem em -28 0
+criar plataforma em -25 6 tamanho 1
+criar cristal em -25 7.3
+
+# buraco grande: só passa balançando no galho
+criar buraco de -20 até -12
+criar galho em -16 5.5
+
+# buraco com vitória-régia (não fique parado!)
+criar buraco de -8 até -2
+criar vitória-régia em -5 0.3
+
+criar cristal em 5 1.6
+criar mosca em 8 1.5
+criar mosca em 10 1.5
+
+# fim: fechar a fenda do portal
+criar fenda em 50 0

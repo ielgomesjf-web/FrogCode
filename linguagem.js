@@ -22,17 +22,20 @@ const COISAS = {
   inimigo: 'inimigo', espinho: 'perigo',
   bandeira: 'marco', portal: 'marco', flor: 'enfeite',
   cubo: 'enfeite', bola: 'enfeite', cone: 'enfeite', cilindro: 'enfeite', piramide: 'enfeite',
+  // mundo primordial
+  mosca: 'coletavel', cristal: 'coletavel', galho: 'galho', buraco: 'buraco', rocha: 'solido', 'vitoria-regia': 'solido', vagem: 'mola', totem: 'marco', fenda: 'marco',
 };
 const FORMAS = ['cubo', 'bola', 'cone', 'cilindro', 'piramide'];
 const PLURAL = {
   cubos: 'cubo', bolas: 'bola', cones: 'cone', cilindros: 'cilindro', piramides: 'piramide',
+  moscas: 'mosca', cristais: 'cristal', galhos: 'galho', rochas: 'rocha', 'vitorias-regias': 'vitoria-regia', 'vitoria-regias': 'vitoria-regia', vagens: 'vagem', totens: 'totem', fendas: 'fenda', buracos: 'buraco',
   moedas: 'moeda', estrelas: 'estrela', gemas: 'gema', coracoes: 'coracao', chaves: 'chave', arvores: 'arvore',
   pinheiros: 'pinheiro', pedras: 'pedra', caixas: 'caixa', blocos: 'bloco', paredes: 'parede', casas: 'casa',
   plataformas: 'plataforma', inimigos: 'inimigo', espinhos: 'espinho', bandeiras: 'bandeira', portais: 'portal', flores: 'flor',
 };
 const NUMS = { um: 1, uma: 1, dois: 2, duas: 2, tres: 3, quatro: 4, cinco: 5, seis: 6, sete: 7, oito: 8, nove: 9, dez: 10, vinte: 20, trinta: 30, cem: 100 };
 const SONS = ['moeda', 'pulo', 'tiro', 'explosao', 'dano', 'perdeu', 'ganhou', 'poder', 'objetivo'];
-const PRONTAS = ['pontos', 'vidas', 'tempo'];
+const PRONTAS = ['pontos', 'vidas', 'tempo', 'cristais', 'moscas'];
 
 function semAcento(s) { return s.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase(); }
 class ErroFC extends Error { constructor(msg, linha) { super(msg); this.linha = linha; } }
@@ -88,7 +91,7 @@ function distancia(a, b) { // pra sugerir "você quis dizer..."
 }
 const PRIMEIRAS = ['jogo', 'ceu', 'chao', 'luz', 'gravidade', 'jogador', 'camera', 'criar', 'objetivo', 'mostrar', 'inimigos',
   'velocidade', 'pulo', 'quando', 'se', 'senao', 'sempre', 'repetir', 'som', 'ganhar', 'perder', 'mensagem', 'esperar',
-  'remover', 'recomecar', 'completar', 'tremer', 'levar', 'voltar', 'vidas', 'pontos', 'mover', 'andar', 'girar', 'virar', 'pular', 'ensinar', 'modelo', 'para', 'derrotar'];
+  'remover', 'recomecar', 'completar', 'tremer', 'levar', 'voltar', 'vidas', 'pontos', 'mover', 'andar', 'girar', 'virar', 'pular', 'ensinar', 'modelo', 'para', 'derrotar', 'habilidades'];
 
 // ---------------- contas (expressões) ----------------
 function tokensConta(s, strs) {
@@ -425,6 +428,13 @@ class Parser {
     if ((m = t.match(/^luz (dia|noite|tarde|por do sol|forte|fraca)$/))) return { tipo: 'luz', v: m[1], cfg: true };
     if ((m = t.match(/^gravidade (.+)$/))) return { tipo: 'gravidade', e: this.conta(m[1], S), cfg: true };
     if ((m = t.match(/^objetivo ?(\d*) (.+)$/))) { soNoTopo('objetivo'); return this.objetivo(m[1] ? +m[1] : 0, m[2], l); }
+    if ((m = t.match(/^(?:habilidades(?: do jogador)?|jogador tem|o jogador tem) (.+)$/))) {
+      const itens = m[1].split(/ , | e |,| /).map(x => x.trim()).filter(Boolean);
+      const HAB = { linguada: 'linguada', lingua: 'linguada', investida: 'investida', dash: 'investida' };
+      const hab = [];
+      for (const v of itens) { if (!HAB[v]) throw erro(`Não conheço a habilidade "${v}". Habilidades: linguada, investida`); hab.push(HAB[v]); }
+      return { tipo: 'habilidades', hab, cfg: true };
+    }
     if ((m = t.match(/^mostrar (?!mensagem)(.+)$/))) {
       const itens = m[1].split(/ , | e |,| /).map(x => x.trim()).filter(Boolean);
       for (const v of itens) { if (!/^[a-z_][a-z0-9_]*$/.test(v)) throw erro(`Não dá pra mostrar "${v}"`); this.refs.push({ v, n: this.linhaAtual }); }
@@ -581,7 +591,8 @@ class Parser {
       else if (k === 'perto') { if (tk[i] === 'do' || tk[i] === 'de') i++; if (tk[i] === 'jogador') i++; no.perto = true; }
       else if (k === 'em') { const r = ler(); no.pos = this.listaContas(r, S); if (no.pos.length < 2 || no.pos.length > 3) throw erro('A posição tem 2 ou 3 números (ex: em 5 3)'); }
       else if (k === 'de') { const r = ler(); no.de = this.listaContas(r, S); if (tk[i] !== 'ate') throw erro('Faltou o "até" (ex: criar parede de 0 0 até 10 0)'); }
-      else if (k === 'ate') { const r = ler(); no.ate = this.listaContas(r, S); if (!no.de || no.de.length !== 2 || no.ate.length !== 2) throw erro('Use: de X Y até X Y (dois números de cada lado)'); }
+      else if (k === 'ate') { const r = ler(); no.ate = this.listaContas(r, S); if (no.coisa === 'buraco') { if (!no.de || no.de.length !== 1 || no.ate.length !== 1) throw erro('Use: criar buraco de -20 até -14 (onde o buraco começa e termina)'); }
+        else if (!no.de || no.de.length !== 2 || no.ate.length !== 2) throw erro('Use: de X Y até X Y (dois números de cada lado)'); }
       else if (k === 'tamanho') {
         const r = ler(), l = this.listaContas(r, S);
         if (l.length === 1) no.tamanho = l[0]; else if (l.length === 3) no.tam3 = l; else throw erro('Tamanho: 1 número, ou 3 (largura, altura, fundura)');
@@ -603,7 +614,7 @@ class Parser {
       const c = m[2].startsWith('§') ? 'emoji:' + this.strsObj(l, m[2]) : this.alvo(m[2]);
       return { ...base, obj: 'pegar', coisa: c, qtd: qtd(m[1]) };
     }
-    if ((m = t.match(/^(?:chegar|ir|entrar|tocar) (?:ate )?(?:n[oa] |a |o |ao |em )?(\S+)$/)) && this.ehAlvo(m[1])) return { ...base, obj: 'chegar', coisa: this.alvo(m[1]) };
+    if ((m = t.match(/^(?:chegar|ir|entrar|tocar|fechar|selar) (?:ate )?(?:n[oa] |a |o |ao |em )?(\S+)$/)) && this.ehAlvo(m[1])) return { ...base, obj: 'chegar', coisa: this.alvo(m[1]) };
     if ((m = t.match(/^(?:derrotar|matar|vencer|destruir|pisar em) (?:todos (?:os )?|todas (?:as )?|os |as )?(?:(\d+|[a-z]+) )?(\S+)$/)) && this.ehAlvo(m[2])) return { ...base, obj: 'derrotar', coisa: this.alvo(m[2]), qtd: qtd(m[1]) };
     if ((m = t.match(/^sobreviver (?:por )?(\d+(?:\.\d+)?) (segundos?|s|seg|minutos?|min)$/))) return { ...base, obj: 'sobreviver', seg: +m[1] * (/^m/.test(m[2]) ? 60 : 1) };
     if ((m = t.match(/^(?:fazer|conseguir|ter|chegar a) (\d+) pontos$/))) return { ...base, obj: 'pontos', qtd: +m[1] };

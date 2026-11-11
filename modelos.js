@@ -187,6 +187,75 @@ const M = {
     g.add(malha(new T.SphereGeometry(0.07, 8, 6), mat('#ffeb3b'), 0, 0.53, 0));
     return { cor, g, caixa: null, raio: 0.3 };
   },
+  // ---- mundo primordial (Ribbat: Origem) ----
+  mosca(cor = '#263238') {
+    const g = new T.Group();
+    const corpo = malha(new T.SphereGeometry(0.11, 10, 8), mat(cor), 0, 0, 0); corpo.scale.set(1, 0.8, 1.4); g.add(corpo);
+    g.add(malha(new T.SphereGeometry(0.05, 8, 6), mat('#b71c1c'), 0, 0.03, 0.14));
+    const asaMat = new T.MeshStandardMaterial({ color: '#e3f2fd', transparent: true, opacity: 0.6, roughness: 0.2, side: T.DoubleSide });
+    for (const s of [-1, 1]) {
+      const asa = new T.Mesh(new T.CircleGeometry(0.11, 12), asaMat); asa.name = 'asa'; asa.userData.lado = s;
+      asa.rotation.x = -Math.PI / 2; asa.position.set(s * 0.1, 0.08, -0.02); asa.scale.set(1, 0.55, 1); g.add(asa);
+    }
+    return { cor, g, caixa: null, raio: 0.35 };
+  },
+  cristal(cor = '#b388ff') {
+    const g = new T.Group();
+    const m = mat(cor, { metalness: 0.2, roughness: 0.1, emissive: cor, emissiveIntensity: 0.55, flatShading: true });
+    const a = malha(new T.OctahedronGeometry(0.22), m); a.scale.set(0.7, 1.6, 0.7); g.add(a);
+    for (const s of [-1, 1]) { const b = malha(new T.OctahedronGeometry(0.1), m, s * 0.18, -0.12, 0); b.scale.set(0.7, 1.5, 0.7); b.rotation.z = s * 0.4; g.add(b); }
+    return { cor, g, caixa: null, raio: 0.4 };
+  },
+  galho(cor = '#6d4c41') { // âncora da linguada-cipó: fica no ar
+    const g = new T.Group();
+    const tronco = malha(new T.CylinderGeometry(0.12, 0.16, 1.6, 8), mat(cor, { flatShading: true }), 0, 0, 0); tronco.rotation.z = Math.PI / 2; g.add(tronco);
+    for (const [x, y, s] of [[-0.7, 0.15, 0.45], [0.75, 0.1, 0.4], [0.2, 0.22, 0.35]]) g.add(malha(new T.IcosahedronGeometry(s, 0), mat('#558b2f', { flatShading: true }), x, y, 0));
+    const anel = malha(new T.TorusGeometry(0.16, 0.04, 6, 14), mat('#7cb342'), 0, -0.24, 0); g.add(anel);
+    return { cor, g, caixa: null, raio: 0.8 };
+  },
+  rocha(cor = '#8d939b') { // quebra com a investida
+    const g = new T.Group();
+    const r = malha(new T.DodecahedronGeometry(0.62, 0), mat(cor, { flatShading: true }), 0, 0.58, 0); r.scale.set(1, 0.95, 0.9); g.add(r);
+    const fenda = mat('#37474f');
+    for (const [x, y, rz, l] of [[0.05, 0.85, 0.5, 0.45], [-0.12, 0.55, -0.6, 0.4], [0.15, 0.3, 0.3, 0.3]]) {
+      const f = malha(new T.BoxGeometry(l, 0.05, 0.05), fenda, x, y, 0.55); f.rotation.z = rz; g.add(f);
+    }
+    return { cor, g, caixa: [1.2, 1.15, 1.1], raio: 0.65 };
+  },
+  'vitoria-regia'(cor = '#43a047') { // afunda se ficar parado em cima
+    const g = new T.Group();
+    const folha = malha(new T.CylinderGeometry(0.85, 0.8, 0.12, 22, 1, false, 0.35, Math.PI * 2 - 0.35), mat(cor), 0, 0.06, 0); g.add(folha);
+    g.add(malha(new T.CylinderGeometry(0.86, 0.86, 0.05, 22, 1, true), mat('#2e7d32'), 0, 0.13, 0));
+    const flor = malha(new T.ConeGeometry(0.16, 0.22, 7), mat('#f48fb1', { flatShading: true }), 0.35, 0.22, 0.2); g.add(flor);
+    return { cor, g, caixa: [1.7, 0.13, 1.7], raio: 0.85 };
+  },
+  vagem(cor = '#7cb342') { // vagem-mola: arremessa pro alto
+    const g = new T.Group();
+    g.add(malha(new T.CylinderGeometry(0.06, 0.09, 0.35, 6), mat('#558b2f'), 0, 0.17, 0));
+    const bulbo = malha(new T.SphereGeometry(0.42, 14, 10), mat(cor), 0, 0.55, 0); bulbo.scale.set(1, 0.7, 0.8); bulbo.name = 'bulbo'; g.add(bulbo);
+    for (const s of [-1, 1]) { const f = malha(new T.SphereGeometry(0.2, 8, 6), mat('#9ccc65'), s * 0.32, 0.5, 0); f.scale.set(1.2, 0.35, 0.7); g.add(f); }
+    return { cor, g, caixa: [0.9, 0.85, 0.9], raio: 0.5 };
+  },
+  totem(cor = '#8d6e63') { // checkpoint do povo primordial
+    const g = new T.Group(), m = mat(cor, { flatShading: true });
+    g.add(malha(new T.CylinderGeometry(0.35, 0.42, 0.9, 7), m, 0, 0.45, 0));
+    g.add(malha(new T.CylinderGeometry(0.42, 0.35, 0.7, 7), mat('#a1887f', { flatShading: true }), 0, 1.25, 0));
+    for (const s of [-1, 1]) {
+      g.add(malha(new T.SphereGeometry(0.13, 8, 6), mat('#6d4c41'), s * 0.18, 1.5, 0.3));
+      const olho = malha(new T.SphereGeometry(0.07, 8, 6), new T.MeshStandardMaterial({ color: '#3e2723', emissive: '#000000' }), s * 0.18, 1.52, 0.41); olho.name = 'olho'; g.add(olho);
+    }
+    g.add(malha(new T.BoxGeometry(0.4, 0.06, 0.06), mat('#4e342e'), 0, 1.08, 0.38));
+    const pena = malha(new T.ConeGeometry(0.08, 0.5, 5), mat('#ff7043'), 0.15, 1.85, 0); pena.rotation.z = -0.3; g.add(pena);
+    return { cor, g, caixa: null, raio: 0.6 };
+  },
+  fenda(cor = '#7c4dff') { // fenda do portal dos gigantes: fim da fase
+    const g = new T.Group();
+    const borda = malha(new T.TorusGeometry(1, 0.1, 8, 36), mat(cor, { emissive: cor, emissiveIntensity: 1 }), 0, 1.4, 0); borda.scale.set(0.75, 1.3, 1); g.add(borda);
+    const miolo = new T.Mesh(new T.CircleGeometry(0.95, 36), new T.MeshBasicMaterial({ color: '#1a0033', side: T.DoubleSide })); miolo.scale.set(0.75, 1.3, 1); miolo.position.y = 1.4; g.add(miolo);
+    const brilho = new T.Mesh(new T.CircleGeometry(0.6, 30), new T.MeshBasicMaterial({ color: cor, transparent: true, opacity: 0.55, side: T.DoubleSide })); brilho.scale.set(0.75, 1.3, 1); brilho.position.set(0, 1.4, 0.01); brilho.name = 'brilho'; g.add(brilho);
+    for (let i = 0; i < 6; i++) { const p = malha(new T.OctahedronGeometry(0.07), mat('#e1bee7', { emissive: '#e1bee7', emissiveIntensity: 1 }), 0, 0, 0); p.name = 'faisca'; p.userData.i = i; g.add(p); }
+    return { cor, g, caixa: null, raio: 1 };
+  },
 };
 
 function bloco(w, h, d, cor, topo) { // paredes e plataformas

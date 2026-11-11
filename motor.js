@@ -58,7 +58,7 @@ function texturaChao(cor, w, d) {
   t.encoding = T.sRGBEncoding; t.anisotropy = 4;
   return t;
 }
-const PONTOS_DE = { moeda: 1, estrela: 5, gema: 3, chave: 0, coracao: 0 };
+const PONTOS_DE = { moeda: 1, estrela: 5, gema: 3, chave: 0, coracao: 0, mosca: 1, cristal: 0 };
 
 class Motor {
   constructor(canvas, hud, opts = {}) {
@@ -141,7 +141,11 @@ class Motor {
   }
   apertou(k) {
     if (this.fim && !this.fim.erro && k === 'r') { this.recomecar(); return; }
-    if (this.rodando && !this.fim) this.disparar('apertar', k);
+    if (this.rodando && !this.fim) {
+      if (k === 'j' && this.cfg.hab.has('linguada')) this.linguada();
+      if (k === 'k' && this.cfg.hab.has('investida')) this.investida();
+      this.disparar('apertar', k);
+    }
   }
 
   // ---------------- começar / parar ----------------
@@ -161,9 +165,10 @@ class Motor {
       modo: '3d', ceu: FC.CEUS.dia, ceuPreset: 'dia', luz: null, grav: 20,
       chao: { mat: 'grama', cor: FC.MATERIAIS.grama, w: null, d: null, nenhum: false },
       jog: { modelo: 'sapo', emoji: null, cor: null, tamanho: 1 },
-      camera: null, mostrar: null, inim: { comp: 'segue', vel: 2.5 }, vel: 5, pulo: 1.5,
+      camera: null, mostrar: null, inim: { comp: 'segue', vel: 2.5 }, vel: 5, pulo: 1.5, hab: new Set(),
     };
-    this.vars = new Map([['pontos', 0], ['vidas', 3], ['tempo', 0]]);
+    this.vars = new Map([['pontos', 0], ['vidas', 3], ['tempo', 0], ['cristais', 0], ['moscas', 0]]);
+    this.linguaMesh = null; this.vitoriaEm = null; this.camFrente = 0;
     this.objs = []; this.solidos = []; this.eventos = []; this.objetivos = []; this.tarefas = [];
     this.pegos = {}; this.derrot = {}; this.marcos = new Set(); this.contatos = new Set();
     this.estadoEv = new Map(); this.tempo = 0; this.fim = null; this.msg = null; this.tremor = 0;
@@ -224,12 +229,27 @@ class Motor {
       cena.add(new T.Points(geo, new T.PointsMaterial({ color: '#ffffff', size: 1.4, fog: false })));
     }
     if (!c.chao.nenhum) {
-      const { w, d } = c.chao;
-      const topo = new T.MeshStandardMaterial({ map: texturaChao(c.chao.cor, w, d), roughness: 0.95 });
-      const lado = mat(c.chao.mat === 'neve' || c.chao.mat === 'gelo' ? '#9fb3c8' : '#6d4c33');
-      const m = new T.Mesh(new T.BoxGeometry(w, 1, d), [lado, lado, topo, lado, lado, lado]);
-      m.position.y = -0.5; m.receiveShadow = true; cena.add(m);
-      this.solidos.push({ min: V(-w / 2, -1, -d / 2), max: V(w / 2, 0, d / 2), chao: true });
+      this.chaoPartes = [];
+      this.pedacoDeChao(-c.chao.w / 2, c.chao.w / 2);
+    }
+  }
+  pedacoDeChao(x1, x2) { // o chão é feito de pedaços, pra poder ter buraco
+    const c = this.cfg, d = c.chao.d, w = x2 - x1; if (w < 0.05) return;
+    const topo = new T.MeshStandardMaterial({ map: texturaChao(c.chao.cor, w, d), roughness: 0.95 });
+    const lado = mat(c.chao.mat === 'neve' || c.chao.mat === 'gelo' ? '#9fb3c8' : '#6d4c33');
+    const m = new T.Mesh(new T.BoxGeometry(w, 1, d), [lado, lado, topo, lado, lado, lado]);
+    m.position.set((x1 + x2) / 2, -0.5, 0); m.receiveShadow = true; this.cena.add(m);
+    const aabb = { min: V(x1, -1, -d / 2), max: V(x2, 0, d / 2), chao: true };
+    this.solidos.push(aabb); this.chaoPartes.push({ x1, x2, m, aabb });
+  }
+  cortarChao(a, b) { // criar buraco de A até B
+    if (!this.chaoPartes) return;
+    const x1 = Math.min(a, b), x2 = Math.max(a, b);
+    for (const p of this.chaoPartes.slice()) {
+      if (p.x2 <= x1 || p.x1 >= x2) continue;
+      this.cena.remove(p.m); this.solidos.splice(this.solidos.indexOf(p.aabb), 1); this.chaoPartes.splice(this.chaoPartes.indexOf(p), 1);
+      if (p.x1 < x1) this.pedacoDeChao(p.x1, x1);
+      if (p.x2 > x2) this.pedacoDeChao(x2, p.x2);
     }
   }
   alturaEm(x, z) { // topo do que estiver embaixo desse ponto (null = nada)
@@ -275,7 +295,7 @@ class Motor {
     mod.g.scale.setScalar(s);
     const fora = new T.Group(); fora.add(mod.g); fora.position.copy(this.inicio);
     this.cena.add(fora);
-    this.jog = { g: fora, dentro: mod.g, pos: fora.position, vel: V(), emp: V(), hw: mod.caixa[0] / 2 * s * 0.85, h: mod.caixa[1] * s, noChao: false, inv: 0, rotAlvo: this.cfg.modo === 'lado' ? Math.PI / 2 : Math.PI };
+    this.jog = { g: fora, dentro: mod.g, escala: s, ss: new T.Vector2(1, 1), pos: fora.position, vel: V(), emp: V(), hw: mod.caixa[0] / 2 * s * 0.85, h: mod.caixa[1] * s, noChao: false, inv: 0, rotAlvo: this.cfg.modo === 'lado' ? Math.PI / 2 : Math.PI };
     fora.rotation.y = this.jog.rotAlvo;
     // o jogador também é um objeto: jogador.x, jogador.vida, mover jogador...
     this.jogObj = { nome: 'jogador', tipo: 'jogador', cat: 'jogador', g: fora, vivo: true, props: {}, ehJogador: true, corBase: mod.cor, escala: s };
@@ -284,7 +304,7 @@ class Motor {
   trocarModelo() {
     const j = this.jog, c = this.cfg.jog, s = c.tamanho || 1;
     const mod = this.modeloDoJogador();
-    this.jogObj.corBase = mod.cor; this.jogObj.escala = s;
+    this.jogObj.corBase = mod.cor; this.jogObj.escala = s; j.escala = s;
     mod.g.scale.setScalar(s);
     j.g.remove(j.dentro); j.g.add(mod.g); j.dentro = mod.g;
     j.hw = mod.caixa[0] / 2 * s * 0.85; j.h = mod.caixa[1] * s;
@@ -296,6 +316,7 @@ class Motor {
     const qtd = clamp(Math.round(n.qtdE ? this.num(this.val(n.qtdE, ctx)) : n.qtd), 0, 500);
     const s = n.tamanho ? Math.max(0.05, this.num(this.val(n.tamanho, ctx))) : 1;
     const tam3 = n.tam3 ? n.tam3.map(e => Math.max(0.05, this.num(this.val(e, ctx)))) : null;
+    if (n.coisa === 'buraco') { const a = this.num(this.val((n.de || n.pos)[0], ctx)), b = n.ate ? this.num(this.val(n.ate[0], ctx)) : a + 3; this.cortarChao(a, b); return; }
     if (n.de && n.ate) { this.linhaDeBlocos(n, s, ctx); return; }
     const lit = e => e && (e.t === 'val' || (e.t === 'neg' && e.a.t === 'val'));
     const md = n.coisa.startsWith('modelo:') ? this.modelos.get(n.coisa.slice(7)) : null;
@@ -553,34 +574,165 @@ class Motor {
     this.checarObjetivos();
     this.checarVidas();
     if (this.objs.length > 60 && this.objs.filter(o => !o.vivo).length > 30) this.objs = this.objs.filter(o => o.vivo);
+    if (this.vitoriaEm && this.tempo >= this.vitoriaEm && !this.fim) this.terminar(true, 'Fenda do portal fechada! 🌀');
     if (this.querRecomecar) this.recomecar();
   }
   atualizarJogador(dt) {
-    const j = this.jog, c = this.cfg, k = this.teclas, cam = c.camera.cam;
+    const j = this.jog, c = this.cfg, k = this.teclas, cam = c.camera.cam, lado = c.modo === 'lado';
     const esq = k.has('a') || k.has('esquerda'), dir = k.has('d') || k.has('direita');
     const fr = k.has('w') || k.has('cima'), tr = k.has('s') || k.has('baixo');
-    const ix = (dir ? 1 : 0) - (esq ? 1 : 0), iz = c.modo === 'lado' ? 0 : (tr ? 1 : 0) - (fr ? 1 : 0);
+    const ix = (dir ? 1 : 0) - (esq ? 1 : 0), iz = lado ? 0 : (tr ? 1 : 0) - (fr ? 1 : 0);
     let mx = ix, mz = iz;
-    if (c.modo !== 'lado' && (cam === 'atras' || cam === 'primeira')) {
+    if (!lado && (cam === 'atras' || cam === 'primeira')) {
       const sy = Math.sin(this.yaw), cy = Math.cos(this.yaw);
       mx = cy * ix + sy * iz; mz = -sy * ix + cy * iz;
     }
     const len = Math.hypot(mx, mz); if (len > 1) { mx /= len; mz /= len; }
-    const v = c.vel * (k.has('shift') ? 1.6 : 1);
-    j.vel.x = mx * v + j.emp.x; j.vel.z = mz * v + j.emp.z;
-    if (j.extra) { j.vel.x += j.extra.x; j.vel.z += j.extra.z; if (j.extra.y > 0 && j.noChao) j.vel.y = j.extra.y; j.extra = null; }
-    j.emp.multiplyScalar(Math.exp(-6 * dt));
-    if (len > 0.01 && cam !== 'primeira') j.rotAlvo = Math.atan2(mx, mz);
-    if (cam === 'primeira') j.rotAlvo = this.yaw + Math.PI;
-    const pular = k.has('espaco') || (c.modo === 'lado' && (k.has('w') || k.has('cima')));
-    if (pular && j.noChao && c.pulo > 0) { j.vel.y = Math.sqrt(2 * c.grav * c.pulo); SOM.pulo(); }
-    this.moverCorpo(j, dt);
+    const vmax = c.vel * (k.has('shift') ? 1.6 : 1);
+    // pulo: segurar = mais alto, vale um tiquinho depois da beirada (coyote) e um tiquinho antes de cair (buffer)
+    const segurando = k.has('espaco') || (lado && (k.has('w') || k.has('cima')));
+    if (segurando && !j.segurandoAntes) j.pedidoPulo = this.tempo;
+    j.segurandoAntes = segurando;
+    const chegouNoChao = j.noChao && !j.noChaoAntes;
+    j.noChaoAntes = j.noChao;
+    if (j.noChao) { j.ultimoChao = this.tempo; j.dashNoAr = false; if (j.vel.y <= 0) { j.pulou = false; j.cortou = false; } }
+    if (chegouNoChao) j.ss.set(1.25, 0.78);
+
+    if (j.balanco) this.balancar(dt, ix, segurando);
+    else {
+      if (j.dash) { // investida: dispara pra frente, invencível
+        j.dash.t -= dt;
+        j.vel.x = j.dash.dir.x * c.vel * 2.7; j.vel.z = j.dash.dir.z * c.vel * 2.7; j.vel.y = 0;
+        this.quebrarRochas();
+        if (j.dash.t <= 0) { j.dash = null; if (lado) j.vel.x *= 0.45; }
+      } else if (lado) { // embalo: acelera, derrapa ao virar
+        const alvoV = mx * vmax + j.emp.x;
+        const virando = Math.sign(alvoV) !== Math.sign(j.vel.x) && Math.abs(j.vel.x) > 0.6;
+        const acel = j.noChao ? (virando ? 70 : alvoV === 0 ? 28 : 34) : 18;
+        j.vel.x += clamp(alvoV - j.vel.x, -acel * dt, acel * dt);
+        j.vel.z = 0;
+      } else { j.vel.x = mx * vmax + j.emp.x; j.vel.z = mz * vmax + j.emp.z; }
+      if (j.extra) { j.vel.x += j.extra.x; j.vel.z += j.extra.z; if (j.extra.y > 0 && j.noChao) j.vel.y = j.extra.y; j.extra = null; }
+      j.emp.multiplyScalar(Math.exp(-6 * dt));
+      if (len > 0.01 && cam !== 'primeira' && !j.dash) j.rotAlvo = Math.atan2(mx, mz);
+      if (cam === 'primeira') j.rotAlvo = this.yaw + Math.PI;
+      const pedido = j.pedidoPulo !== undefined && this.tempo - j.pedidoPulo < 0.13;
+      const naBeirada = this.tempo - (j.ultimoChao ?? -9) < 0.1;
+      if (pedido && naBeirada && !j.pulou && c.pulo > 0 && !j.dash) {
+        const embalo = lado ? Math.min(1, Math.abs(j.vel.x) / (c.vel * 1.6)) : 0;
+        j.vel.y = Math.sqrt(2 * c.grav * c.pulo * (1 + 0.3 * embalo)); // correndo pula mais
+        SOM.pulo(); j.pedidoPulo = undefined; j.pulou = true; j.ultimoChao = -9; j.ss.set(0.8, 1.25);
+      }
+      if (j.pulou && !segurando && j.vel.y > 0 && !j.cortou) { j.vel.y *= 0.45; j.cortou = true; } // soltou cedo: pulo baixinho
+      this.moverCorpo(j, dt);
+    }
+    // jeitinho: estica no pulo, amassa na queda
+    j.ss.x += (1 - j.ss.x) * Math.min(1, dt * 10); j.ss.y += (1 - j.ss.y) * Math.min(1, dt * 10);
+    const e = j.escala || 1, sx = j.dash ? 1.3 : j.ss.x, sy = j.dash ? 0.8 : j.ss.y;
+    j.dentro.scale.set(e * sx, e * sy, e * sx);
     let d = j.rotAlvo - j.g.rotation.y; d = Math.atan2(Math.sin(d), Math.cos(d));
-    j.g.rotation.y += d * Math.min(1, dt * 12);
-    j.dentro.position.y = len > 0.01 && j.noChao ? Math.abs(Math.sin(this.tempo * 13)) * 0.08 : 0;
+    j.g.rotation.y += d * Math.min(1, dt * 14);
+    j.dentro.position.y = len > 0.01 && j.noChao && !j.dash ? Math.abs(Math.sin(this.tempo * 13)) * 0.08 : 0;
     j.g.visible = cam === 'primeira' ? false : j.inv > 0 ? Math.floor(this.tempo * 12) % 2 === 0 : true;
     if (j.inv > 0) j.inv -= dt;
-    if (j.pos.y < -15) { this.dano(true); this.levarJogador(this.inicio); }
+    this.atualizarLingua(dt);
+    if (j.pos.y < (lado ? -9 : -15)) { j.balanco = null; j.dash = null; this.dano(true); this.levarJogador(this.inicio); }
+  }
+  // ---------- habilidades do Kroad ----------
+  frenteJogador() {
+    if (this.cfg.modo === 'lado') return V(Math.sign(Math.sin(this.jog.g.rotation.y)) || 1, 0, 0);
+    return this.frente(this.jogObj);
+  }
+  linguada() {
+    const j = this.jog; if (j.lingua || j.balanco || j.dash) return;
+    if (this.cfg.modo === 'lado') { // tem galho perto, em cima? gruda e balança
+      const f = this.frenteJogador().x; let melhor = null, md = 6.5;
+      for (const o of this.objs) if (o.vivo && o.tipo === 'galho') {
+        const dx = o.g.position.x - j.pos.x, dy = o.g.position.y - (j.pos.y + j.h * 0.6), dd = Math.hypot(dx, dy);
+        if (dy > 0.3 && dd < md && dx * f > -1.5) { md = dd; melhor = o; }
+      }
+      if (melhor) { this.iniciarBalanco(melhor); return; }
+    }
+    // mira sozinha: o alvo mais perto à frente (inimigo ou coisa de pegar)
+    const f = this.frenteJogador(), boca = j.pos.clone(); boca.y += j.h * 0.55;
+    let dir = f.clone(), melhor = 3.9;
+    for (const o of this.objs) {
+      if (!o.vivo || (o.cat !== 'inimigo' && o.cat !== 'coletavel')) continue;
+      const v = this.centro(o).sub(boca), dd = v.length();
+      if (dd < melhor && dd > 0.1 && v.clone().normalize().dot(f) > 0.45) { melhor = dd; dir = v.normalize(); }
+    }
+    j.lingua = { t: 0, dir, alcance: Math.min(3.6, melhor + 0.4) };
+    bip(700, 220, 0.12, 'sine', 0.12);
+  }
+  atualizarLingua(dt) {
+    const j = this.jog, boca = j.pos.clone(); boca.y += j.h * 0.55;
+    let ponta = null;
+    if (j.lingua) {
+      const L = j.lingua, ida = 0.12, total = 0.27; L.t += dt;
+      const ext = (L.t < ida ? L.t / ida : Math.max(0, 1 - (L.t - ida) / (total - ida))) * L.alcance;
+      ponta = boca.clone().addScaledVector(L.dir, ext);
+      if (L.t < ida + 0.03) for (const o of this.objs) {
+        if (!o.vivo || (o.cat !== 'inimigo' && o.cat !== 'coletavel')) continue;
+        const pc = this.centro(o);
+        if (pc.distanceTo(ponta) < 0.55 + (o.raio || 0.4) * 0.6) {
+          if (o.cat === 'inimigo') this.derrotar(o); else this.pegar(o);
+          L.t = Math.max(L.t, ida); break;
+        }
+      }
+      if (L.t >= total) { j.lingua = null; ponta = null; }
+    } else if (j.balanco) ponta = j.balanco.a.clone();
+    if (!ponta) { if (this.linguaMesh) this.linguaMesh.visible = false; return; }
+    if (!this.linguaMesh) {
+      this.linguaMesh = new T.Mesh(new T.CylinderGeometry(0.055, 0.055, 1, 8), new T.MeshStandardMaterial({ color: '#f06292', roughness: 0.5 }));
+      this.cena.add(this.linguaMesh);
+    }
+    const v = ponta.clone().sub(boca), n = v.length();
+    this.linguaMesh.visible = n > 0.05;
+    this.linguaMesh.position.copy(boca).addScaledVector(v, 0.5);
+    this.linguaMesh.scale.set(1, Math.max(n, 0.01), 1);
+    this.linguaMesh.quaternion.setFromUnitVectors(V(0, 1, 0), v.normalize());
+  }
+  iniciarBalanco(galho) {
+    const j = this.jog, a = galho.g.position.clone(); a.y -= 0.24;
+    const px = j.pos.x - a.x, py = j.pos.y + j.h * 0.6 - a.y;
+    const L = clamp(Math.hypot(px, py), 1.4, 6.5), ang = Math.atan2(px, -py);
+    const tang = j.vel.x * Math.cos(ang) + j.vel.y * Math.sin(ang);
+    j.balanco = { a, L, ang, w: tang / L, solto: false };
+    j.lingua = null; j.dash = null; bip(500, 900, 0.1, 'sine', 0.12);
+  }
+  balancar(dt, ix, segurando) {
+    const j = this.jog, b = j.balanco, g = this.cfg.grav;
+    const alpha = -(g / b.L) * Math.sin(b.ang) + ix * 5 / b.L; // empurrar pro lado dá mais balanço
+    b.w += alpha * dt; b.w *= Math.exp(-0.12 * dt);
+    b.ang += b.w * dt;
+    if (Math.abs(b.ang) > 1.45) { b.ang = Math.sign(b.ang) * 1.45; b.w = 0; }
+    const px = b.a.x + b.L * Math.sin(b.ang), py = b.a.y - b.L * Math.cos(b.ang) - j.h * 0.6;
+    j.pos.set(px, py, 0);
+    j.rotAlvo = b.w >= 0 ? Math.PI / 2 : -Math.PI / 2;
+    const pulo = j.pedidoPulo !== undefined && this.tempo - j.pedidoPulo < 0.13;
+    if (!this.teclas.has('j') || pulo) { // soltou o cipó: sai voando com o embalo
+      const vt = b.w * b.L;
+      j.vel.set(vt * Math.cos(b.ang) * 1.15, vt * Math.sin(b.ang) * 1.15 + (pulo ? 6 : 2.5), 0);
+      j.balanco = null; j.pulou = true; j.cortou = true; j.pedidoPulo = undefined; j.ss.set(0.85, 1.2);
+      if (pulo) SOM.pulo();
+    }
+  }
+  investida() {
+    const j = this.jog;
+    if (j.dash || j.balanco || this.tempo - (j.ultDash ?? -9) < 0.55) return;
+    if (!j.noChao && j.dashNoAr) return; // no ar, só uma vez
+    j.dash = { t: 0.3, dir: this.frenteJogador() }; j.ultDash = this.tempo;
+    if (!j.noChao) j.dashNoAr = true;
+    j.lingua = null; this.tremor = 0.08; ruido(0.25, 0.12); bip(180, 90, 0.25, 'sawtooth', 0.06);
+  }
+  quebrarRochas() {
+    const j = this.jog, f = j.dash.dir;
+    const caixa = { pos: V(j.pos.x + f.x * 0.35, j.pos.y, j.pos.z + f.z * 0.35), hw: j.hw + 0.2, h: j.h };
+    for (const o of this.objs) {
+      if (!o.vivo || o.tipo !== 'rocha' || !o.aabb || !this.sobrepoe(caixa, o.aabb)) continue;
+      this.removerObj(o); ruido(0.35, 0.3); this.tremor = 0.3;
+      this.derrot.rocha = (this.derrot.rocha || 0) + 1; this.disparar('derrotar', 'rocha', o);
+    }
   }
   atualizarCoisas(dt) {
     const j = this.jog;
@@ -590,7 +742,28 @@ class Motor {
       else if (o.cat === 'inimigo') this.atualizarInimigo(o, dt, j);
       else if (o.tipo === 'bandeira') { const p = o.g.getObjectByName('pano'); if (p) p.rotation.y = Math.sin(this.tempo * 4 + o.fase) * 0.25; }
       else if (o.tipo === 'portal') o.g.rotation.y += dt * 0.8;
+      else if (o.tipo === 'vitoria-regia') this.atualizarVitoria(o, dt, j);
+      else if (o.tipo === 'vagem') { const b = o.g.getObjectByName('bulbo'); if (b) { o.anim = Math.max(0, (o.anim || 0) - dt); const a = o.anim > 0 ? Math.sin(o.anim / 0.35 * Math.PI) * 0.35 : Math.sin(this.tempo * 3 + o.fase) * 0.03; b.scale.set(1 + a, 0.7 - a * 0.8, 0.8 + a); } }
+      else if (o.tipo === 'galho') o.g.rotation.z = Math.sin(this.tempo * 1.5 + o.fase) * 0.04;
+      else if (o.tipo === 'fenda') {
+        o.g.children.forEach(m => {
+          if (m.name === 'brilho') m.material.opacity = 0.4 + Math.sin(this.tempo * 4) * 0.2;
+          if (m.name === 'faisca') { const a = this.tempo * 2 + m.userData.i * 1.05; m.position.set(Math.cos(a) * 0.9, 1.4 + Math.sin(a) * 1.35, 0.1); }
+        });
+        if (o.fechando) { o.fechando -= dt; const k = Math.max(0.01, o.fechando / 0.9); o.g.scale.set(k, k, k); o.g.rotation.z += dt * 8; if (o.fechando <= 0) this.removerObj(o); }
+      }
     }
+  }
+  atualizarVitoria(o, dt, j) { // vitória-régia: ficar parado em cima faz afundar
+    if (o.yBase === undefined) o.yBase = o.g.position.y;
+    const a = o.aabb, em = j.vel.y <= 0.5 && Math.abs(j.pos.y - a.max.y) < 0.15 && j.pos.x + j.hw > a.min.x && j.pos.x - j.hw < a.max.x && j.pos.z + j.hw > a.min.z && j.pos.z - j.hw < a.max.z;
+    o.parado = em ? (o.parado || 0) + dt : 0;
+    let dy = 0;
+    if (o.parado > 0.35) dy = -1.3 * dt;
+    else if (o.g.position.y < o.yBase) dy = Math.min(0.9 * dt, o.yBase - o.g.position.y);
+    if (o.g.position.y + dy < o.yBase - 5) dy = 0;
+    if (dy) this.moverObj(o, V(0, dy, 0));
+    o.g.rotation.z = em ? Math.sin(this.tempo * 7) * 0.03 : o.g.rotation.z * 0.9;
   }
   atualizarInimigo(o, dt, j) {
     const c = o.corpo, lado = this.cfg.modo === 'lado'; let vel = this.cfg.inim.vel;
@@ -624,7 +797,17 @@ class Motor {
   contatosJogador() {
     const j = this.jog, cx = j.pos.x, cy = j.pos.y + j.h / 2, cz = j.pos.z, agora = new Set();
     for (const o of this.objs) {
-      if (!o.vivo || o.cat === 'fantasma') continue;
+      if (!o.vivo || o.cat === 'fantasma' || o.cat === 'galho') continue;
+      if (o.cat === 'mola') { // vagem-mola: caiu em cima, voa
+        const topo = o.g.position.y + 0.85 * (o.escala || 1) * (o.sCodigo || 1);
+        if (Math.abs(cx - o.g.position.x) < 0.55 + j.hw && Math.abs(cz - o.g.position.z) < 0.55 + j.hw && j.pos.y > topo - 0.35 && j.pos.y < topo + 0.3 && j.vel.y <= 0.5) {
+          j.vel.y = Math.sqrt(2 * this.cfg.grav * (+o.props.altura || 5.5)); j.pulou = true; j.cortou = true; j.ss.set(0.7, 1.4); j.dashNoAr = false;
+          o.anim = 0.35; bip(200, 1000, 0.25, 'square', 0.08);
+          if (!this.contatos.has(o)) this.disparar('tocar', o.tipo, o);
+          agora.add(o);
+        }
+        continue;
+      }
       let toca = false;
       if (o.cat === 'coletavel' || o.cat === 'marco' || o.cat === 'enfeite') {
         const p = o.g.position, dy = o.cat === 'marco' ? Math.max(0, Math.abs(cy - (p.y + 1.1)) - 1) : cy - p.y;
@@ -639,12 +822,22 @@ class Motor {
       const novo = !this.contatos.has(o);
       if (o.cat === 'coletavel') { this.pegar(o); continue; }
       if (o.cat === 'inimigo') {
+        if (j.dash) { this.derrotar(o); continue; }
         if (j.vel.y < -0.5 && j.pos.y > o.corpo.pos.y + o.corpo.h * 0.45) {
           this.derrotar(o); j.vel.y = Math.sqrt(2 * this.cfg.grav * Math.max(this.cfg.pulo, 1) * 0.7); continue;
         }
         this.dano(false, o.g.position);
       }
       if (o.cat === 'perigo') this.dano(false, o.g.position);
+      if (novo && o.tipo === 'totem' && !o.ativo) { // checkpoint: acende e vira o novo começo
+        o.ativo = true; this.inicio = o.g.position.clone(); this.inicio.y = Math.max(this.inicio.y, j.pos.y);
+        o.g.traverse(m => { if (m.name === 'olho') { m.material = m.material.clone(); m.material.color.set('#ffca28'); m.material.emissive.set('#ffb300'); m.material.emissiveIntensity = 1.5; } });
+        SOM.objetivo();
+      }
+      if (novo && o.tipo === 'fenda' && !o.fechando) { // fim da fase: o Kroad sela a fenda do portal
+        o.fechando = 0.9; [300, 450, 600, 900].forEach((f, i) => bip(f, f * 0.5, 0.25, 'triangle', 0.12, i * 0.08));
+        if (!this.objetivos.length) this.vitoriaEm = this.tempo + 1;
+      }
       if (novo) { if (o.cat === 'marco') this.marcos.add(o.tipo); this.disparar('tocar', o.tipo, o); }
     }
     this.contatos = agora;
@@ -654,7 +847,10 @@ class Motor {
     const t = o.tipo; this.pegos[t] = (this.pegos[t] || 0) + 1;
     const pts = t.startsWith('emoji:') ? 1 : PONTOS_DE[t] || 0;
     if (pts) this.vars.set('pontos', (+this.vars.get('pontos') || 0) + pts);
-    if (t === 'coracao') { this.vars.set('vidas', (+this.vars.get('vidas') || 0) + 1); SOM.poder(); }
+    if (t === 'mosca') this.vars.set('moscas', (+this.vars.get('moscas') || 0) + 1);
+    if (t === 'cristal') { this.vars.set('cristais', (+this.vars.get('cristais') || 0) + 1); SOM.poder(); }
+    else if (t === 'mosca') bip(1200, 1600, 0.08, 'sine', 0.1);
+    else if (t === 'coracao') { this.vars.set('vidas', (+this.vars.get('vidas') || 0) + 1); SOM.poder(); }
     else if (t === 'estrela') SOM.poder(); else SOM.moeda();
     this.disparar('pegar', t, o); this.disparar('tocar', t, o);
   }
@@ -666,6 +862,7 @@ class Motor {
   dano(queda, de) {
     const j = this.jog;
     if (j.inv > 0 && !queda) return;
+    if (j.dash && !queda) return; // na investida é invencível
     if (!queda && this.jogObj && this.jogObj.props.invencivel) return; // jogador.invencível = sim
     this.vars.set('vidas', (+this.vars.get('vidas') || 0) - 1);
     j.inv = 1.5; this.tremor = 0.35; SOM.dano();
@@ -756,6 +953,7 @@ class Motor {
     const c = this.cfg;
     switch (n.tipo) {
       case 'jogo': c.modo = n.modo; break;
+      case 'habilidades': c.hab = new Set(n.hab); break;
       case 'ceu':
         c.ceu = n.cor; c.ceuPreset = n.preset || null;
         if (this.fase === 'jogo') { this.cena.background.set(n.cor); this.cena.fog.color.set(n.cor); }
@@ -983,7 +1181,7 @@ class Motor {
         else pos = V(alvo.x, alvo.y + d, alvo.z + d * 0.45);
         break;
       case 'lado':
-        if (c.modo === 'lado') { orto = Math.max(d * 0.6, d * 0.75 / Math.max(this.aspect, 0.3)); /* celular em pé: afasta pra ver dos lados */ const y = Math.max(alvo.y + 0.5, orto * 0.5); pos = V(alvo.x, y, 60); olhar = V(alvo.x, y, 0); }
+        if (c.modo === 'lado') { orto = Math.max(d * 0.6, d * 0.75 / Math.max(this.aspect, 0.3)); /* celular em pé: afasta pra ver dos lados */ const y = Math.max(alvo.y + 0.5, orto * 0.5); if (Math.abs(j.vel.x) > 1) this.camFrente += (Math.sign(j.vel.x) * Math.min(orto * this.aspect * 0.35, 3) - this.camFrente) * Math.min(1, dt * 1.5); const cx = alvo.x + (this.camFrente || 0); pos = V(cx, y, 60); olhar = V(cx, y, 0); }
         else pos = V(alvo.x, alvo.y + d * 0.3, alvo.z + d);
         break;
       case 'fixa': pos = V(...cam.pos); break;
@@ -1022,8 +1220,9 @@ class Motor {
     if (this.tempo < 6 && !this.fim) {
       const m = this.cfg.modo, cam = this.cfg.camera.cam;
       const toque = document.body.classList.contains('toque');
-      if (toque) h += `<div class="hud-dica" style="bottom:150px">🕹️ joystick: andar · ⤒ pular${cam === 'atras' || cam === 'primeira' ? ' · arraste a tela: girar a câmera' : ''}</div>`;
-      else h += `<div class="hud-dica">${m === 'lado' ? '← → andar · Espaço pular' : 'WASD ou setas: andar · Espaço: pular · Shift: correr'}${cam === 'atras' ? ' · arraste o mouse: girar a câmera' : cam === 'primeira' ? ' · clique: olhar com o mouse' : ''}</div>`;
+      const hab = this.cfg.hab, hk = (hab.has('linguada') ? (toque ? ' · 👅 linguada' : ' · J linguada') : '') + (hab.has('investida') ? (toque ? ' · 💨 investida' : ' · K investida') : '');
+      if (toque) h += `<div class="hud-dica" style="bottom:150px">🕹️ joystick: andar · ⤒ pular${hk}${cam === 'atras' || cam === 'primeira' ? ' · arraste a tela: girar a câmera' : ''}</div>`;
+      else h += `<div class="hud-dica">${m === 'lado' ? '← → andar · Espaço pular (segure = mais alto) · Shift correr' : 'WASD ou setas: andar · Espaço: pular · Shift: correr'}${hk}${cam === 'atras' ? ' · arraste o mouse: girar a câmera' : cam === 'primeira' ? ' · clique: olhar com o mouse' : ''}</div>`;
     }
     if (this.fim) h += `<div class="hud-fim ${this.fim.ganhou ? 'ganhou' : ''}"><div>${esc(this.fim.msg)}</div>${this.fim.erro ? '' : '<small>aperte R pra jogar de novo</small>'}</div>`;
     if (h !== this.hudTxt) { this.hud.innerHTML = h; this.hudTxt = h; }

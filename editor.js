@@ -360,6 +360,8 @@ function rodarPrograma(r, nome) {
   $('#vazio').style.display = 'none';
   saida(`▶ Rodando ${nome}`, 'ok');
   m.carregar(r);
+  document.querySelectorAll('#botoesToque [data-k=j]').forEach(b => b.hidden = !m.cfg?.hab?.has('linguada'));
+  document.querySelectorAll('#botoesToque [data-k=k]').forEach(b => b.hidden = !m.cfg?.hab?.has('investida'));
 }
 function parar() { if (motor) motor.parar(); $('#vazio').style.display = 'flex'; saida('■ Parado'); }
 $('#bRodar').onclick = rodar;

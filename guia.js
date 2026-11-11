@@ -126,6 +126,12 @@ criar boneco chamado guarda em 4 4
 - \`tipo:\` sólido (padrão), inimigo, pegável, perigoso ou enfeite. A frente do modelo é o lado +Z.
 - Pra ser o jogador: \`jogador: boneco\` (ou \`jogador: boneco tamanho 3\`).
 
+## Plataforma primordial (bom no jogo: 2D de lado)
+- Pulo: segurar = mais alto (automático). No 2D o jogador acelera/derrapa; correndo pula mais longe.
+- \`habilidades: linguada, investida\` → J = linguada (mira sozinha, derrota inimigo, puxa mosca; perto de \`galho\` em cima, SEGURAR J balança no cipó), K = investida (quebra \`rocha\`, derruba inimigo, invencível).
+- Coisas: \`mosca\` (+1 ponto, conta em "moscas"), \`cristal\` (conta em "cristais"), \`galho\` (fica no ar), \`rocha\` (só quebra com investida), \`vitória-régia\` (afunda se ficar parado), \`vagem\` (mola; \`com altura 8\`), \`totem\` (checkpoint), \`fenda\` (fim da fase; sem objetivos, fechar = vencer; ou \`objetivo1: fechar a fenda\`).
+- Buraco no chão: \`criar buraco de 14 até 22\` (cair = -1 vida e volta pro último totem).
+
 ## Cores
 preto, branco, vermelho, verde, azul, amarelo, laranja, roxo, rosa, cinza, marrom, ciano, dourado, prata, bege, verdeclaro, verdeescuro, azulclaro, azulescuro, ou código entre aspas: "#ff8800"
 

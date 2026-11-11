@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
 <title>FrogCode</title>
-<meta name="frogcode-versao" content="2026.11.11-5">
+<meta name="frogcode-versao" content="2026.11.11-6">
 <style>
 :root{
   --fundo:#1e1e1e; --lateral:#252526; --atividade:#333333; --titulo:#3c3c3c; --aba:#2d2d2d; --borda:#3c3c3c;
@@ -182,6 +182,8 @@ body.toque #toque{display:block}
 #botoesToque button{pointer-events:auto;touch-action:none;width:74px;height:74px;border-radius:50%;background:#ffffff26;border:2px solid #ffffff59;color:#fff;font-size:28px;font-weight:800}
 #botoesToque #tE{width:60px;height:60px;font-size:22px;margin-bottom:40px}
 #botoesToque button.on{background:#7ed95788}
+#botoesToque button.hab{width:62px;height:62px;font-size:26px;margin-bottom:70px}
+#botoesToque button[hidden]{display:none}
 
 /* ---------- modo celular (tela estreita) ---------- */
 #navCel,#selArq{display:none}
@@ -325,7 +327,7 @@ body.celular #bPublicar{padding:8px 12px}
         <div id="vazio"><div class="grande">🐸</div><div>Aperte <b>▶ Rodar</b> pra ver seu jogo aqui</div></div>
         <div id="toque">
           <div id="joy"><div id="joyBola"></div></div>
-          <div id="botoesToque"><button id="tE" data-k="e">E</button><button id="tPular" data-k="espaco">⤒</button></div>
+          <div id="botoesToque"><button class="hab" data-k="j" hidden>👅</button><button class="hab" data-k="k" hidden>💨</button><button id="tE" data-k="e">E</button><button id="tPular" data-k="espaco">⤒</button></div>
         </div>
       </div>
     </section>
@@ -347,11 +349,11 @@ body.celular #bPublicar{padding:8px 12px}
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/TransformControls.js"></script>
-<script src="linguagem.js?v=2026.11.11-5"></script>
-<script src="manual.js?v=2026.11.11-5"></script>
-<script src="guia.js?v=2026.11.11-5"></script>
-<script src="publicar.js?v=2026.11.11-5"></script>
-<script>if (window.THREE) { document.write('<script src="modelos.js?v=2026.11.11-5"><\/script><script src="motor.js?v=2026.11.11-5"><\/script><script src="cena.js?v=2026.11.11-5"><\/script>'); }</script>
-<script src="editor.js?v=2026.11.11-5"></script>
+<script src="linguagem.js?v=2026.11.11-6"></script>
+<script src="manual.js?v=2026.11.11-6"></script>
+<script src="guia.js?v=2026.11.11-6"></script>
+<script src="publicar.js?v=2026.11.11-6"></script>
+<script>if (window.THREE) { document.write('<script src="modelos.js?v=2026.11.11-6"><\/script><script src="motor.js?v=2026.11.11-6"><\/script><script src="cena.js?v=2026.11.11-6"><\/script>'); }</script>
+<script src="editor.js?v=2026.11.11-6"></script>
 </body>
 </html>
