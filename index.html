@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
 <title>FrogCode</title>
-<meta name="frogcode-versao" content="2026.11.11-7">
+<meta name="frogcode-versao" content="2026.11.11-8">
 <style>
 :root{
   --fundo:#1e1e1e; --lateral:#252526; --atividade:#333333; --titulo:#3c3c3c; --aba:#2d2d2d; --borda:#3c3c3c;
@@ -38,6 +38,10 @@ button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
 #atividade button{width:48px;height:48px;font-size:22px;opacity:.55;border-left:2px solid transparent}
 #atividade button:hover{opacity:.9}
 #atividade button.ativo{opacity:1;border-left-color:var(--verde)}
+#atividade a.link-app{width:48px;height:48px;font-size:22px;opacity:.55;display:flex;align-items:center;justify-content:center;text-decoration:none;margin-top:auto;margin-bottom:6px}
+#atividade a.link-app:hover{opacity:.9}
+#navCel a.link-app{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;font-size:22px;color:var(--fraco);gap:1px;text-decoration:none}
+#navCel a.link-app small{font-size:11px}
 
 /* lateral */
 #lateral{background:var(--lateral);overflow:auto;min-width:0}
@@ -270,6 +274,7 @@ body.celular #bPublicar{padding:8px 12px}
       <button data-v="arquivos" title="Arquivos">📄</button>
       <button data-v="manual" title="Manual">📖</button>
       <button data-v="exemplos" title="Exemplos">🎮</button>
+      <a class="link-app" href="https://ielgomesjf-web.github.io/FrogTalk/" target="_blank" rel="noopener" title="FrogTalk — o chat da Frogbit (abre numa aba nova)">💬</a>
     </nav>
     <aside id="lateral"></aside>
     <section id="centro">
@@ -335,7 +340,7 @@ body.celular #bPublicar{padding:8px 12px}
     </section>
   </div>
   <nav id="navCel">
-    <button data-aba="codigo">📝<small>Código</small></button><button data-aba="cena">🎬<small>Cena</small></button><button data-aba="modelos">🧱<small>Modelos</small></button><button data-aba="jogo">🎮<small>Jogo</small></button><button data-aba="manual">📖<small>Manual</small></button>
+    <button data-aba="codigo">📝<small>Código</small></button><button data-aba="cena">🎬<small>Cena</small></button><button data-aba="modelos">🧱<small>Modelos</small></button><button data-aba="jogo">🎮<small>Jogo</small></button><button data-aba="manual">📖<small>Manual</small></button><a class="link-app" href="https://ielgomesjf-web.github.io/FrogTalk/" target="_blank" rel="noopener">💬<small>FrogTalk</small></a>
   </nav>
   <footer id="status">
     <button id="stProb">❌ 0 &nbsp;⚠ 0</button>
@@ -351,11 +356,11 @@ body.celular #bPublicar{padding:8px 12px}
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/TransformControls.js"></script>
-<script src="linguagem.js?v=2026.11.11-7"></script>
-<script src="manual.js?v=2026.11.11-7"></script>
-<script src="guia.js?v=2026.11.11-7"></script>
-<script src="publicar.js?v=2026.11.11-7"></script>
-<script>if (window.THREE) { document.write('<script src="modelos.js?v=2026.11.11-7"><\/script><script src="motor.js?v=2026.11.11-7"><\/script><script src="cena.js?v=2026.11.11-7"><\/script>'); }</script>
-<script src="editor.js?v=2026.11.11-7"></script>
+<script src="linguagem.js?v=2026.11.11-8"></script>
+<script src="manual.js?v=2026.11.11-8"></script>
+<script src="guia.js?v=2026.11.11-8"></script>
+<script src="publicar.js?v=2026.11.11-8"></script>
+<script>if (window.THREE) { document.write('<script src="modelos.js?v=2026.11.11-8"><\/script><script src="motor.js?v=2026.11.11-8"><\/script><script src="cena.js?v=2026.11.11-8"><\/script>'); }</script>
+<script src="editor.js?v=2026.11.11-8"></script>
 </body>
 </html>
