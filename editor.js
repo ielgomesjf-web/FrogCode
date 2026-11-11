@@ -471,6 +471,7 @@ function aplicarCelular() {
   document.body.classList.toggle('celular', cel);
   document.body.classList.toggle('toque', cel || mqToque.matches);
   $('#bRodar').textContent = cel ? '▶' : '▶ Rodar';
+  $('#bPublicar').textContent = cel ? '🌐' : '🌐 Publicar';
   if (cel && !document.body.dataset.aba) irAba(ehManual(E.ativo) ? 'manual' : (E.vista || 'codigo'));
   motor?.ajustar();
 }
