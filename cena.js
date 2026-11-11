@@ -420,7 +420,7 @@ function teclaCena(e) {
 
 // ========================= MODELOS (tipo Blender) =========================
 const modelos = (() => {
-  let r, cena, camM, orbitM, tcM, grupo, pecas = [], atual = null, selP = null, iniciado = false, caixaP = null, ultimoModelo = undefined, tudo = null;
+  let r, cena, camM, orbitM, tcM, grupo, pecas = [], atual = null, selP = null, iniciado = false, caixaP = null, ultimoModelo = undefined, tudo = null, selSet = [], modoVarias = false;
   const raio = new T.Raycaster();
   const CATS = [['solido', 'sólido'], ['inimigo', 'inimigo'], ['coletavel', 'pegável'], ['perigo', 'perigoso'], ['enfeite', 'enfeite']];
   function iniciar() {
@@ -439,7 +439,7 @@ const modelos = (() => {
     orbitM = new T.OrbitControls(camM, cv); orbitM.mouseButtons = { LEFT: null, MIDDLE: T.MOUSE.PAN, RIGHT: T.MOUSE.ROTATE }; orbitM.target.set(0, 0.7, 0); orbitM.update();
     tcM = new T.TransformControls(camM, cv); tcM.setSize(0.9);
     tcM.setTranslationSnap(0.05); tcM.setRotationSnap(T.MathUtils.degToRad(15)); tcM.setScaleSnap(0.01);
-    tcM.addEventListener('dragging-changed', e => { orbitM.enabled = !e.value; if (!e.value) { if (tudo) { soltarTudo(); escrever(); selecionarTudo(); } else escrever(); } });
+    tcM.addEventListener('dragging-changed', e => { orbitM.enabled = !e.value; if (!e.value) escrever(); });
     tcM.addEventListener('objectChange', () => {
       if (tudo) { if (tcM.mode === 'scale') { const sc = tudo.scale, v = [sc.x, sc.y, sc.z].sort((a, b) => Math.abs(b - 1) - Math.abs(a - 1))[0]; sc.setScalar(Math.max(0.05, v)); } return; }
       painel(true);
@@ -451,7 +451,10 @@ const modelos = (() => {
       if (p0 && p0[2] === 0 && Math.hypot(e.clientX - p0[0], e.clientY - p0[1]) < 5 && !tcM.dragging && tcM.axis === null) {
         const b = cv.getBoundingClientRect();
         raio.setFromCamera({ x: (e.clientX - b.left) / b.width * 2 - 1, y: -(e.clientY - b.top) / b.height * 2 + 1 }, camM);
-        const h = raio.intersectObjects(pecas, false)[0]; escolher(h ? h.object : null);
+        const h = raio.intersectObjects(pecas, false)[0];
+        if (h && (e.shiftKey || modoVarias)) alternarNoConjunto(h.object);
+        else if (!h && modoVarias) { /* no modo Várias, tocar no vazio não larga a seleção */ }
+        else escolher(h ? h.object : null);
       }
       p0 = null;
     });
@@ -460,6 +463,7 @@ const modelos = (() => {
       if (e.ctrlKey && k === 'z') { e.preventDefault(); desfazerUm(); return; }
       if (e.ctrlKey && k === 'd') { e.preventDefault(); duplicarP(); return; }
       if ((e.ctrlKey && k === 'a') || k === 'a') { e.preventDefault(); selecionarTudo(); return; }
+      if (k === 'm') { e.preventDefault(); espelharP(); return; }
       if (k === 'w') modoM('translate'); else if (k === 'e') modoM('rotate'); else if (k === 'r') modoM('scale');
       else if (k === 'delete' || k === 'backspace') apagarP(); else if (k === 'escape') escolher(null); else return;
       e.preventDefault();
@@ -468,6 +472,7 @@ const modelos = (() => {
       const b = e.target.closest('button'); if (!b) return; const a = b.dataset.a;
       if (['translate', 'rotate', 'scale'].includes(a)) modoM(a);
       else if (a === 'duplicar') duplicarP(); else if (a === 'apagar') apagarP(); else if (a === 'desfazer') desfazerUm(); else if (a === 'espelhar') espelharP(); else if (a === 'tudo') selecionarTudo();
+      else if (a === 'varias') { modoVarias = !modoVarias; b.classList.toggle('on', modoVarias); IDE().saida(modoVarias ? '☑ Modo Várias ligado: toque nas peças pra juntar ou tirar do conjunto' : '☑ Modo Várias desligado'); }
     });
     $('#modPecas').innerHTML = '<span class="rot">PEÇAS:</span>' + FC.FORMAS.map(fm => `<button data-f="${fm}">${ICONE[fm]}<small>${ESCRITA[fm] || fm}</small></button>`).join('') + '<button data-f="olhos" title="Escolha a cabeça e clique: põe 2 olhos na frente dela">👀<small>olhos</small></button>';
     $('#modPecas').addEventListener('click', e => { const b = e.target.closest('button'); if (b) adicionarP(b.dataset.f); });
@@ -515,29 +520,39 @@ const modelos = (() => {
     }
     if (idxSel >= 0 && pecas[idxSel]) escolher(pecas[idxSel]); else painel();
   }
-  function selecionarTudo() { // pega o modelo inteiro (todas as peças juntas)
-    if (!pecas.length) return;
-    if (tudo) soltarTudo();
-    escolher(null);
-    const b = new T.Box3().setFromObject(grupo), c = b.getCenter(new T.Vector3());
+  const ehTudo = () => !!tudo && selSet.length === pecas.length;
+  function selecionarTudo() { selecionarConjunto(pecas.slice()); } // o modelo inteiro
+  function selecionarConjunto(lista) { // várias peças juntas, mexendo como se fossem uma só
+    lista = lista.filter(p => pecas.includes(p));
+    soltarTudo(); escolher(null);
+    if (!lista.length) return;
+    if (lista.length === 1) { escolher(lista[0]); return; }
+    const b = new T.Box3(); lista.forEach(p => b.expandByObject(p));
+    const c = b.getCenter(new T.Vector3());
     tudo = new T.Object3D(); tudo.position.set(c.x, b.min.y, c.z); cena.add(tudo);
-    pecas.forEach(p => tudo.attach(p));
+    lista.forEach(p => tudo.attach(p)); selSet = lista;
     tcM.attach(tudo);
     caixaP = new T.BoxHelper(tudo, 0x7ed957); cena.add(caixaP);
     painel();
   }
   function soltarTudo() { // devolve as peças pro grupo, já com o movimento aplicado nelas
-    if (!tudo) return;
+    if (!tudo) { selSet = []; return; }
     tcM.detach();
-    pecas.forEach(p => grupo.attach(p));
-    cena.remove(tudo); tudo = null;
+    selSet.forEach(p => grupo.attach(p));
+    cena.remove(tudo); tudo = null; selSet = [];
     if (caixaP) { cena.remove(caixaP); caixaP = null; }
   }
+  function alternarNoConjunto(me) { // Shift+clique / modo Várias: põe ou tira a peça do conjunto
+    const atualSel = tudo ? selSet.slice() : selP ? [selP] : [];
+    const i = atualSel.indexOf(me);
+    if (i >= 0) atualSel.splice(i, 1); else atualSel.push(me);
+    selecionarConjunto(atualSel);
+  }
   function centralizarNoChao() {
-    const eraTudo = !!tudo; soltarTudo();
+    const volta = tudo ? selSet.slice() : null; soltarTudo();
     const b = new T.Box3().setFromObject(grupo), c = b.getCenter(new T.Vector3());
     for (const p of pecas) { p.position.x -= c.x; p.position.z -= c.z; p.position.y -= b.min.y; }
-    escrever(); if (eraTudo) selecionarTudo(); else painel();
+    escrever(); if (volta) selecionarConjunto(volta); else painel();
   }
   function escolher(me) {
     if (tudo && me) soltarTudo();
@@ -559,9 +574,11 @@ const modelos = (() => {
     }
     if (!m) { el.innerHTML = '<h3>PEÇA</h3><p class="fraco">Crie um modelo novo na lista ao lado.</p>'; return; }
     let h = `<h3>MODELO</h3><button class="btn largo verdao" id="modJogador">🎮 Usar como jogador</button><div class="rotulo">Modelo inteiro</div><div class="tamcena"><button data-tm="0.8">➖ menor</button><button data-tm="1.25">➕ maior</button></div><label class="linha">Ele é <select id="modCat">${CATS.map(([v, t]) => `<option value="${v}" ${m.cat === v ? 'selected' : ''}>${t}</option>`).join('')}</select></label>`;
-    if (tudo) h += `<h3>🔲 MODELO INTEIRO (${pecas.length} peças)</h3><p class="fraco">Arraste as setinhas pra mexer tudo junto.<br><b>W</b> mover · <b>E</b> girar · <b>R</b> tamanho<br>Clique numa peça pra voltar a mexer só nela.</p>
-        <div class="botoes"><button class="btn" data-a3="giraE">↺ 90°</button><button class="btn" data-a3="giraD">↻ 90°</button><button class="btn" data-a3="centro">⬇ Pôr no centro do chão</button><button class="btn" data-a3="soltar">✖ Soltar</button></div>`;
-    else if (!selP) h += `<button class="btn largo" data-a3="tudo">🔲 Selecionar o modelo inteiro</button><button class="btn largo" data-a3="centro">⬇ Pôr no centro do chão</button><p class="fraco">${m.partes.length} peça(s). Clique numa peça pra mexer, ou adicione peças embaixo.<br><br><b>W</b> mover · <b>E</b> girar · <b>R</b> esticar<br><b>Del</b> apagar · <b>Ctrl+D</b> duplicar<br><br>A setinha verde no chão mostra onde é a <b>frente</b>.</p>`;
+    if (tudo) h += `<h3>${ehTudo() ? `🔲 MODELO INTEIRO (${pecas.length} peças)` : `☑ ${selSet.length} PEÇAS JUNTAS`}</h3><p class="fraco">Arraste as setinhas pra mexer tudo junto.<br><b>W</b> mover · <b>E</b> girar · <b>R</b> tamanho<br>${ehTudo() ? '' : '<b>Shift+clique</b> (ou ☑ Várias) põe ou tira peças.<br>'}Clique numa peça sozinha pra voltar a mexer só nela.</p>
+        <div class="botoes"><button class="btn" data-a3="giraE">↺ 90°</button><button class="btn" data-a3="giraD">↻ 90°</button>${ehTudo() ? '<button class="btn" data-a3="centro">⬇ Pôr no centro do chão</button>' : ''}</div>
+        <div class="rotulo">Pintar ${ehTudo() ? 'o modelo inteiro' : 'as peças escolhidas'}</div><div class="cores">${Object.entries(FC.CORES).map(([n, cor]) => `<button data-corc="${cor}" title="${n}" style="background:${cor}"></button>`).join('')}</div>
+        <div class="botoes"><button class="btn" data-a2="dup">⧉ Duplicar</button><button class="btn" data-a2="esp">🪞 ${ehTudo() ? 'Espelhar (virar do avesso)' : 'Espelhar (criar o outro lado)'}</button><button class="btn perigo" data-a2="apagar">🗑 Apagar ${ehTudo() ? 'tudo' : 'essas'}</button><button class="btn" data-a3="soltar">✖ Soltar</button></div>`;
+    else if (!selP) h += `<button class="btn largo" data-a3="tudo">🔲 Selecionar o modelo inteiro</button><button class="btn largo" data-a3="copiar">⧉ Copiar este modelo (com outro nome)</button><button class="btn largo" data-a3="centro">⬇ Pôr no centro do chão</button><p class="fraco">${m.partes.length} peça(s). Clique numa peça pra mexer, ou adicione peças embaixo.<br><br><b>W</b> mover · <b>E</b> girar · <b>R</b> esticar<br><b>Del</b> apagar · <b>Ctrl+D</b> duplicar · <b>M</b> espelhar<br><b>Shift+clique</b> (ou <b>☑ Várias</b> no celular) escolhe várias peças juntas<br><br>A setinha verde no chão mostra onde é a <b>frente</b>.</p>`;
     else {
       const c = (k, v, passo) => `<input type="number" step="${passo}" data-c="${k}" value="${f(v)}">`;
       h += `<h3>${ICONE[selP.userData.forma]} ${ESCRITA[selP.userData.forma] || selP.userData.forma}</h3>
@@ -583,12 +600,13 @@ const modelos = (() => {
       if (a === 'tudo') selecionarTudo();
       else if (a === 'centro') centralizarNoChao();
       else if (a === 'soltar') { soltarTudo(); painel(); }
-      else if (a === 'giraE' || a === 'giraD') { tudo.rotation.y += (a === 'giraE' ? 1 : -1) * Math.PI / 2; soltarTudo(); escrever(); selecionarTudo(); }
+      else if (a === 'copiar') copiarModelo(m);
+      else if (a === 'giraE' || a === 'giraD') { tudo.rotation.y += (a === 'giraE' ? 1 : -1) * Math.PI / 2; escrever(); }
     });
     el.querySelectorAll('[data-tm]').forEach(b => b.onclick = () => { // aumenta/diminui todas as peças juntas
-      const k = +b.dataset.tm; const eraTudo = !!tudo; soltarTudo();
+      const k = +b.dataset.tm; const volta = tudo ? selSet.slice() : null; soltarTudo();
       for (const p of pecas) { p.position.multiplyScalar(k); p.scale.multiplyScalar(k); }
-      escrever(); if (eraTudo) selecionarTudo(); else painel(true);
+      escrever(); if (volta) selecionarConjunto(volta); else painel(true);
       const bx = new T.Box3(); pecas.forEach(p => bx.expandByObject(p)); const c = bx.getCenter(new T.Vector3()), t = bx.getSize(new T.Vector3()).length();
       const dir = camM.position.clone().sub(orbitM.target); if (dir.lengthSq() < 1e-6) dir.set(0.7, 0.5, 1); orbitM.target.copy(c); camM.position.copy(c).add(dir.setLength(Math.max(2.5, t * 1.5))); orbitM.update();
     });
@@ -600,6 +618,7 @@ const modelos = (() => {
       escrever();
     });
     el.querySelectorAll('[data-cor]').forEach(b => b.onclick = () => { selP.userData.cor = b.dataset.cor; selP.material.color.set(b.dataset.cor); escrever(); painel(); });
+    el.querySelectorAll('[data-corc]').forEach(b => b.onclick = () => { selSet.forEach(p => { p.userData.cor = b.dataset.corc; p.material.color.set(b.dataset.corc); }); escrever(); });
     el.querySelectorAll('[data-a2]').forEach(b => b.onclick = () => b.dataset.a2 === 'dup' ? duplicarP() : b.dataset.a2 === 'esp' ? espelharP() : apagarP());
     const uni = el.querySelector('[data-c="uni"]');
     if (uni) {
@@ -616,7 +635,7 @@ const modelos = (() => {
   }
   function escrever(novaCat) { // reescreve o bloco "modelo X:" inteiro
     const m = lista().find(x => x.nome === atual); if (!m) return;
-    const voltarTudo = !!tudo; if (tudo) soltarTudo(); // as peças precisam estar no lugar certo antes de virar texto
+    const volta = tudo ? selSet.slice() : null; if (tudo) soltarTudo(); // as peças precisam estar no lugar certo antes de virar texto
     const cat = novaCat || m.cat;
     mudarTexto(L => {
       const ind = (L[m.n - 1].match(/^\s*/) || [''])[0];
@@ -624,7 +643,7 @@ const modelos = (() => {
       if (cat !== 'solido') bloco.push(ind + '  tipo: ' + CATS.find(c => c[0] === cat)[1]);
       L.splice(m.n - 1, m.fim - m.n + 1, ...bloco); return L;
     }, false);
-    if (voltarTudo) selecionarTudo(); else if (novaCat) painel(); else painel(true);
+    if (volta) selecionarConjunto(volta); else if (novaCat) painel(); else painel(true);
     if (motor) montar();
   }
   function usarComoJogador(m) { // troca (ou cria) a linha "jogador: ..." no código
@@ -659,12 +678,26 @@ const modelos = (() => {
     escolher(ultimo); escrever();
     IDE().saida(base ? '👀 Pus 2 olhos na frente da peça escolhida' : '👀 Pus 2 olhos (dica: escolha a cabeça antes, aí eles vão certinho pra ela)', 'ok');
   }
-  function espelharP() { // cria a cópia do outro lado (bom pra olho, braço, asa)
+  function copiaEspelhada(p) {
+    const me = p.clone(); me.material = p.material.clone(); me.userData = { ...p.userData };
+    me.position.x = -p.position.x; me.rotation.y = -p.rotation.y; me.rotation.z = -p.rotation.z;
+    grupo.add(me); pecas.push(me); return me;
+  }
+  function espelharP() { // peça: cria o outro lado · conjunto: cria o outro lado de todas · modelo inteiro: vira do avesso
+    if (tudo) {
+      const lista = selSet.slice(), inteiro = ehTudo(); soltarTudo();
+      if (inteiro) { // vira o modelo do avesso (o lado direito vira o esquerdo)
+        lista.forEach(p => { p.position.x = -p.position.x; p.rotation.y = -p.rotation.y; p.rotation.z = -p.rotation.z; });
+        escrever(); selecionarConjunto(lista); IDE().saida('🪞 Virei o modelo do avesso', 'ok'); return;
+      }
+      const doLado = lista.filter(p => Math.abs(p.position.x) >= 0.01);
+      if (!doLado.length) { selecionarConjunto(lista); IDE().saida('Essas peças estão bem no meio — mova pro lado antes de espelhar'); return; }
+      const novas = doLado.map(copiaEspelhada);
+      escrever(); selecionarConjunto(novas); IDE().saida(`🪞 Criei o outro lado (${novas.length} peças)`, 'ok'); return;
+    }
     if (!selP) return;
     if (Math.abs(selP.position.x) < 0.01) { IDE().saida('Essa peça está bem no meio — mova ela pro lado antes de espelhar'); return; }
-    const me = selP.clone(); me.material = selP.material.clone(); me.userData = { ...selP.userData };
-    me.position.x = -selP.position.x; me.rotation.y = -selP.rotation.y; me.rotation.z = -selP.rotation.z;
-    grupo.add(me); pecas.push(me); escolher(me); escrever();
+    const me = copiaEspelhada(selP); escolher(me); escrever();
   }
   function adicionarP(forma) {
     if (!atual) return novo();
@@ -674,13 +707,32 @@ const modelos = (() => {
     grupo.add(me); pecas.push(me); escolher(me); escrever();
   }
   function duplicarP() {
+    if (tudo) { // duplica o conjunto todo, um pouco pro lado
+      const lista = selSet.slice(), inteiro = ehTudo(); soltarTudo();
+      const b = new T.Box3(); lista.forEach(p => b.expandByObject(p));
+      const passo = inteiro ? b.getSize(new T.Vector3()).x + 0.2 : 0.4;
+      const novas = lista.map(p => { const me = p.clone(); me.material = p.material.clone(); me.userData = { ...p.userData }; me.position.x += passo; grupo.add(me); pecas.push(me); return me; });
+      escrever(); selecionarConjunto(novas); return;
+    }
     if (!selP) return;
     const me = selP.clone(); me.material = selP.material.clone(); me.userData = { ...selP.userData }; me.position.x += 0.3;
     grupo.add(me); pecas.push(me); escolher(me); escrever();
   }
   function apagarP() {
+    if (tudo) { const lista = selSet.slice(); soltarTudo(); lista.forEach(p => grupo.remove(p)); pecas = pecas.filter(p => !lista.includes(p)); escolher(null); escrever(); return; }
     if (!selP) return;
     grupo.remove(selP); pecas = pecas.filter(p => p !== selP); escolher(null); escrever();
+  }
+  async function copiarModelo(m) { // cria um modelo novo igualzinho, com outro nome
+    const velho = m.cabecalho.replace(/^\s*modelo\s+/i, '').replace(/:\s*$/, '').trim();
+    const n = await IDE().pedirNome('Nome da cópia do modelo:', velho + '_2'); if (!n) return;
+    const nomeTexto = n.trim().replace(/\s+/g, '_'), nome = FC.semAcento(nomeTexto).replace(/[^a-z0-9_]/g, ''); if (!nome) return;
+    if (lista().some(x => x.nome === nome)) { IDE().saida(`Já existe um modelo chamado "${nomeTexto}"`); return; }
+    mudarTexto(L => {
+      const bloco = L.slice(m.n - 1, m.fim); bloco[0] = bloco[0].replace(/^(\s*modelo\s+)[^:]+/i, '$1' + nomeTexto);
+      while (L.length && !L[L.length - 1].trim()) L.pop(); L.push('', ...bloco); return L;
+    }, false);
+    atual = nome; recarregar(); IDE().saida(`⧉ Criei o modelo "${nomeTexto}", igualzinho ao "${velho}"`, 'ok');
   }
   async function novo() {
     const n = await IDE().pedirNome('Nome do modelo novo (ex: robô, carro, árvore mágica):', 'boneco'); if (!n) return;
@@ -689,6 +741,7 @@ const modelos = (() => {
     atual = nome; recarregar();
   }
   window.__escolherPeca = i => escolher(pecas[i]);
+  window.__alternarPeca = i => alternarNoConjunto(pecas[i]);
   return { abrir() { if (iniciar()) { recarregar(); ajustar(); } }, recarregar: () => { if (iniciado) recarregar(); } };
 })();
 

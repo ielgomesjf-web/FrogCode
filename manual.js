@@ -402,6 +402,9 @@ O modelo pode ser o jogador: <code>jogador: boneco</code>. Dá pra criar peça s
 <li>No inspetor: posição, tamanho, giro, cor, e o que o modelo <b>é</b> (sólido, inimigo, pegável...).</li>
 <li><b>🔲 Tudo</b> (ou a tecla <kbd>A</kbd>) seleciona o <b>modelo inteiro</b>: aí as setinhas mexem, giram e aumentam tudo junto. Tem também <b>↺ 90°</b>, <b>↻ 90°</b> e <b>⬇ Pôr no centro do chão</b>.</li>
 <li><b>Modelo inteiro ➖ / ➕</b> diminui ou aumenta todas as peças de uma vez.</li>
+<li><b>Várias peças juntas:</b> <kbd>Shift</kbd> + clique (ou o botão <b>☑ Várias</b> no celular) junta peças num conjunto. O conjunto mexe, gira, estica, pinta, duplica e apaga junto.</li>
+<li><b>🪞 Espelhar</b> (tecla <kbd>M</kbd>): numa peça ou num conjunto, cria o outro lado (faça um braço inteiro e espelhe!). Com o <b>modelo inteiro</b> escolhido, ele vira o modelo do avesso.</li>
+<li><b>⧉ Copiar este modelo</b> cria um modelo novo igualzinho, com outro nome (bom pra fazer variações).</li>
 <li><b>👀 olhos</b>: escolha a cabeça e clique, aparecem 2 olhos prontos. <b>🪞 Espelhar</b> copia a peça pro outro lado.</li>
 <li><b>🎮 Usar como jogador</b> troca o jogador pelo seu modelo.</li>
 <li>A setinha verde no chão mostra a <b>frente</b> do modelo.</li>
