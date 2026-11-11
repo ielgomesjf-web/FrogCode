@@ -83,7 +83,7 @@ async function abrir() {
   const IDE = window.FrogIDE, codigo = IDE.texto();
   if (!codigo.trim()) { IDE.saida('Abra um jogo antes de publicar'); return; }
   const r = IDE.analisar(), erros = r.erros.filter(e => e.nivel === 'erro');
-  const titulo = ((codigo.match(/^\s*#\s*(.+)$/m) || [])[1] || IDE.nome().replace(/\.frog$/, '')).trim();
+  const titulo = (((codigo.match(/^\s*t[ií]tulo(?: do jogo)?\s*:\s*["'“]?([^"'”\n]+)/mi) || codigo.match(/^\s*#\s*(.+)$/m) || [])[1] || IDE.nome().replace(/\.frog$/, '')) + '').trim();
   const d = document.createElement('div'); d.id = 'dlgPub';
   document.body.appendChild(d);
   const fechar = () => d.remove();

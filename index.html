@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
 <title>FrogCode</title>
-<meta name="frogcode-versao" content="2026.11.11-6">
+<meta name="frogcode-versao" content="2026.11.11-7">
 <style>
 :root{
   --fundo:#1e1e1e; --lateral:#252526; --atividade:#333333; --titulo:#3c3c3c; --aba:#2d2d2d; --borda:#3c3c3c;
@@ -61,6 +61,7 @@ button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
 .ferr button{padding:4px 9px;border-radius:4px;font-size:12px;white-space:nowrap}
 .ferr button:hover{background:#ffffff14} .ferr button.on{background:#04395e;color:#fff}
 .ferr button.verde{background:var(--verde2);color:#fff}
+#cenaFase{background:#3c3c3c;color:#fff;border:1px solid #555;border-radius:4px;padding:3px 6px;font-size:12px;margin-right:6px;max-width:220px}
 .ferr .sep{width:1px;height:18px;background:var(--borda);margin:0 4px} .ferr .esp{flex:1}
 .coord{color:var(--fraco);font:12px var(--mono);margin-right:8px}
 .vista .corpo{flex:1;display:flex;min-height:0}
@@ -285,6 +286,7 @@ body.celular #bPublicar{padding:8px 12px}
         <div id="manualview"></div>
         <div id="cenaview" class="vista">
           <div class="ferr" id="cenaFerr">
+            <select id="cenaFase" hidden title="Qual fase mostrar"></select>
             <button data-a="translate" title="Mover (W)">✋ Mover</button><button data-a="rotate" title="Girar (E)">🔄 Girar</button><button data-a="scale" title="Tamanho (R)">⤢ Tamanho</button>
             <span class="sep"></span><button data-a="grade" title="Encaixar de 0,5 em 0,5 metro">🧲 Grade</button><button data-a="focar" title="Focar (F)">🎯 Focar</button>
             <span class="sep"></span><button data-a="duplicar" title="Ctrl+D">⧉ Duplicar</button><button data-a="apagar" title="Delete">🗑 Apagar</button><button data-a="desfazer" title="Ctrl+Z">↶ Desfazer</button>
@@ -349,11 +351,11 @@ body.celular #bPublicar{padding:8px 12px}
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/TransformControls.js"></script>
-<script src="linguagem.js?v=2026.11.11-6"></script>
-<script src="manual.js?v=2026.11.11-6"></script>
-<script src="guia.js?v=2026.11.11-6"></script>
-<script src="publicar.js?v=2026.11.11-6"></script>
-<script>if (window.THREE) { document.write('<script src="modelos.js?v=2026.11.11-6"><\/script><script src="motor.js?v=2026.11.11-6"><\/script><script src="cena.js?v=2026.11.11-6"><\/script>'); }</script>
-<script src="editor.js?v=2026.11.11-6"></script>
+<script src="linguagem.js?v=2026.11.11-7"></script>
+<script src="manual.js?v=2026.11.11-7"></script>
+<script src="guia.js?v=2026.11.11-7"></script>
+<script src="publicar.js?v=2026.11.11-7"></script>
+<script>if (window.THREE) { document.write('<script src="modelos.js?v=2026.11.11-7"><\/script><script src="motor.js?v=2026.11.11-7"><\/script><script src="cena.js?v=2026.11.11-7"><\/script>'); }</script>
+<script src="editor.js?v=2026.11.11-7"></script>
 </body>
 </html>

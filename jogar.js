@@ -47,6 +47,7 @@ document.body.insertAdjacentHTML('beforeend', `
 
 if (matchMedia('(pointer: coarse)').matches || innerWidth < 820) document.body.classList.add('toque');
 
+const tituloDo = c => ((c.match(/^\s*t[ií]tulo(?: do jogo)?\s*:\s*["'“]?([^"'”\n]+)/mi) || c.match(/^\s*#\s*(.+)$/m) || [])[1] || '').trim();
 // ---------- ler o jogo ----------
 function deBase64url(s) {
   s = s.replace(/-/g, '+').replace(/_/g, '/'); while (s.length % 4) s += '=';
@@ -68,7 +69,7 @@ async function lerJogo() {
   let codigo;
   try { codigo = await lerJogo(); } catch (e) { codigo = null; }
   if (!codigo) { $('#titulo').textContent = 'Jogo não encontrado 😕'; $('#sub').innerHTML = 'Esse link está quebrado ou incompleto.<br>Peça pra quem fez publicar de novo.'; return; }
-  const titulo = ((codigo.match(/^\s*#\s*(.+)$/m) || [])[1] || 'Jogo feito no FrogCode').trim();
+  const titulo = tituloDo(codigo) || 'Jogo feito no FrogCode';
   document.title = titulo + ' — FrogCode';
   $('#titulo').textContent = titulo;
   if (!window.THREE || !window.Motor) { $('#sub').textContent = 'Não consegui carregar o 3D. Confira a internet e recarregue.'; return; }
@@ -80,7 +81,8 @@ async function lerJogo() {
   let motor = null;
   b.onclick = () => {
     $('#capa').remove(); document.body.classList.add('jogando');
-    motor = new Motor($('#cv'), $('#hud'), { erro: e => { $('#hud').insertAdjacentHTML('beforeend', `<div class="hud-fim"><div>Deu erro no jogo 😵</div><small>linha ${e.linha}: ${String(e.message).replace(/</g, '&lt;')}</small></div>`); } });
+    motor = new Motor($('#cv'), $('#hud'), { semTitulo: true, erro: e => { $('#hud').insertAdjacentHTML('beforeend', `<div class="hud-fim"><div>Deu erro no jogo 😵</div><small>linha ${e.linha}: ${String(e.message).replace(/</g, '&lt;')}</small></div>`); } });
+    window.__frogMotor = motor; // só pra testes
     motor.manterTeclas = document.body.classList.contains('toque');
     motor.carregar(prog);
     document.querySelector('#botoes [data-k=j]').hidden = !motor.cfg.hab.has('linguada');

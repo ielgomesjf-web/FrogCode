@@ -132,6 +132,12 @@ criar boneco chamado guarda em 4 4
 - Coisas: \`mosca\` (+1 ponto, conta em "moscas"), \`cristal\` (conta em "cristais"), \`galho\` (fica no ar), \`rocha\` (só quebra com investida), \`vitória-régia\` (afunda se ficar parado), \`vagem\` (mola; \`com altura 8\`), \`totem\` (checkpoint), \`fenda\` (fim da fase; sem objetivos, fechar = vencer; ou \`objetivo1: fechar a fenda\`).
 - Buraco no chão: \`criar buraco de 14 até 22\` (cair = -1 vida e volta pro último totem).
 
+## Fases, menu e save
+- Fora das fases = vale pro jogo todo; dentro de \`fase NOME:\` (2 espaços) = só daquela fase. \`título: Nome do Jogo\` (fora das fases).
+- Com fases o jogo ganha sozinho tela de título, menu de fases (libera ao zerar a anterior), pausa (Esc), fase completa com estatísticas, game over e save.
+- A fase acaba ao ganhar (fechar a \`fenda\`, completar objetivos ou \`ganhar\`). Ações: \`próxima fase\`, \`ir para fase 2\` / \`ir para fase Caverna\`, \`voltar ao menu\`.
+- \`jogo:\`, \`título:\`, \`modelo\` e \`ensinar\` ficam FORA das fases.
+
 ## Cores
 preto, branco, vermelho, verde, azul, amarelo, laranja, roxo, rosa, cinza, marrom, ciano, dourado, prata, bege, verdeclaro, verdeescuro, azulclaro, azulescuro, ou código entre aspas: "#ff8800"
 

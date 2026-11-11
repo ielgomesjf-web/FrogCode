@@ -61,7 +61,8 @@ function trocarLinha(n, fn, reconstruir) { mudarTexto(L => { L[n - 1] = fn(L[n -
 function desfazerUm() { const t = desfazer.pop(); if (t == null) return; IDE().setTexto(t); montar(); modelos.recarregar(); }
 
 // ========================= CENA (tipo Unity) =========================
-let camPosta = false;
+let camPosta = false, faseSel = 0;
+const fasesDo = r => (r && r.corpo ? r.corpo.filter(n => n.tipo === 'fase') : []);
 let motor = null, cam, orbit, tc, sel = null, pivo = null, pivoIni = null, caixaSel = null, prog = null, grade = true;
 const ray = new T.Raycaster(), planoChao = new T.Plane(new T.Vector3(0, 1, 0), 0);
 
@@ -75,6 +76,7 @@ function iniciarCena() {
   cam = new T.PerspectiveCamera(55, 1, 0.1, 1000);
   cam.position.set(18, 22, 30);
   motor = new Motor(cv, document.createElement('div'), {
+    faseEditor: () => faseSel,
     editor: true, camera: () => cam,
     aoAjustar: (w, h) => { cam.aspect = w / h; cam.updateProjectionMatrix(); },
     antes: () => { if (caixaSel) caixaSel.update(); },
@@ -128,6 +130,13 @@ function montar(linhaSel) {
   const manter = linhaSel ?? (sel ? (sel.ehJogador ? 'jogador' : sel.linha) : null);
   soltarPivo(); tc.detach(); sel = null; if (caixaSel) { caixaSel.parent?.remove(caixaSel); caixaSel = null; }
   prog = IDE().analisar();
+  { // jogo com fases: escolher qual fase aparece na Cena
+    const fs = fasesDo(prog), sel = $('#cenaFase');
+    if (faseSel >= fs.length) faseSel = 0;
+    sel.hidden = !fs.length;
+    sel.innerHTML = fs.map((f, i) => `<option value="${i}" ${i === faseSel ? 'selected' : ''}>🗺 Fase ${i + 1}: ${esc(f.rotulo)}</option>`).join('');
+    sel.onchange = () => { faseSel = +sel.value; camPosta = false; sel.blur(); montar(null); };
+  }
   const erros = prog.erros.filter(e => e.nivel === 'erro');
   $('#cenaAviso').style.display = erros.length ? 'block' : 'none';
   $('#cenaAviso').textContent = erros.length ? `⚠ O código tem ${erros.length} erro(s) — a cena mostra só as linhas certas. (linha ${erros[0].linha}: ${erros[0].msg})` : '';
@@ -214,6 +223,8 @@ function confirmar() { // soltou o mouse: escreve no código
     const p = o.g.position, nums = lado ? [p.x, p.y] : [p.x, p.z];
     if (motor.inicioLinha) trocarLinha(motor.inicioLinha, raw => raw.replace(/^(\s*jogador\s+(?:comeca\s+|começa\s+)?em\s*:?\s*).*$/i, '$1' + nums.map(f).join(' ')), false);
     else mudarTexto(L => {
+      const fase = fasesDo(IDE().analisar())[faseSel];
+      if (fase) { L.splice(fase.n, 0, '  jogador em: ' + nums.map(f).join(' ')); return L; } // dentro da fase
       let i = L.findIndex(l => /^\s*jogador\s*:/i.test(l)); if (i < 0) i = L.findIndex(l => /^\s*jogo\s*:/i.test(l));
       L.splice(i + 1, 0, 'jogador em: ' + nums.map(f).join(' ')); return L;
     });
@@ -345,6 +356,11 @@ function centroDaVista() {
 }
 function inserirNaCena(linha) {
   let n = 0;
+  const fase = fasesDo(IDE().analisar())[faseSel];
+  if (fase) { // com fases: a coisa nova entra DENTRO da fase que está na Cena
+    mudarTexto(L => { L.splice(fase.fim, 0, '  ' + linha); n = fase.fim + 1; return L; }, false);
+    montar(n); return;
+  }
   mudarTexto(L => {
     if (!L.some(l => /#\s*-+\s*cena/i.test(l))) { while (L.length && !L[L.length - 1].trim()) L.pop(); L.push('', '# ---------- cena (feita no editor) ----------'); }
     L.push(linha); n = L.length; return L;

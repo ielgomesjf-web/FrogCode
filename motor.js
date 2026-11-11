@@ -39,6 +39,7 @@ function fmt(v) {
   if (typeof v === 'boolean') return v ? 'sim' : 'não';
   return String(v);
 }
+const esc = s => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 function nomeTecla(e) {
   let m;
   if ((m = /^Key([A-Z])$/.exec(e.code))) return m[1].toLowerCase();
@@ -79,7 +80,7 @@ class Motor {
       if (this.cena && this.cv.offsetParent !== null) {
         if (opts.editor) { opts.antes?.(); this.r.render(this.cena, opts.camera()); }
         else {
-          try { if (this.rodando && !this.fim) this.atualizar(dt); this.atualizarCamera(dt); this.desenharHud(); }
+          try { if (this.rodando && !this.fim && !this.pausado) this.atualizar(dt); this.atualizarCamera(dt); this.desenharHud(); }
           catch (e) { this.falhar(e); }
           this.r.render(this.cena, this.cam);
         }
@@ -101,7 +102,7 @@ class Motor {
   montarEditor(prog) {
     const r0 = Math.random; let sem = 20261110;
     Math.random = () => { sem |= 0; sem = sem + 0x6D2B79F5 | 0; let t = Math.imul(sem ^ sem >>> 15, 1 | sem); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; };
-    try { this.prog = prog; this.modoEditor = true; this.recomecar(); } finally { Math.random = r0; }
+    try { this.prog = prog; this.faseAtual = this.opts.faseEditor ? this.opts.faseEditor() : 0; this.separarFases(prog); this.modoEditor = true; this.recomecar(); } finally { Math.random = r0; }
   }
   alturaSem(x, z, o) { // chão embaixo, sem contar o próprio objeto
     let h = null;
@@ -140,7 +141,8 @@ class Motor {
     });
   }
   apertou(k) {
-    if (this.fim && !this.fim.erro && k === 'r') { this.recomecar(); return; }
+    if ((k === 'esc' || k === 'p') && this.fases && this.fases.length) { if (this.estado === 'jogando') this.pausar(); return; }
+    if (this.fim && !this.fim.erro && !this.fim.fase && k === 'r') { this.recomecar(); return; }
     if (this.rodando && !this.fim) {
       if (k === 'j' && this.cfg.hab.has('linguada')) this.linguada();
       if (k === 'k' && this.cfg.hab.has('investida')) this.investida();
@@ -150,11 +152,17 @@ class Motor {
 
   // ---------------- começar / parar ----------------
   carregar(prog) {
-    this.prog = prog;
+    this.prog = prog; this.fecharTela(); this.botaoPausa(false); this.pausado = false; this.faseAtual = 0;
+    this.separarFases(prog); this.save = this.lerSave();
     try { this.recomecar(); } catch (e) { this.falhar(e); }
+    if (this.fases.length && !(this.fim && this.fim.erro)) { // jogo com fases: começa pela tela de título (o cenário da fase 1 fica atrás)
+      this.rodando = false;
+      if (this.opts.semTitulo) { if (this.fases.length > 1) this.mostrarMenu(); else this.jogarFase(0); } else this.mostrarTitulo();
+    } else this.estado = 'jogando';
     this.cv.focus();
   }
   parar() {
+    this.fecharTela(); this.botaoPausa(false); this.pausado = false;
     this.rodando = false; this.cena = null; this.prog = null; this.hud.innerHTML = ''; this.hudTxt = '';
     if (document.pointerLockElement) document.exitPointerLock();
     this.r.setClearColor('#0b0e12'); this.r.clear();
@@ -175,7 +183,7 @@ class Motor {
     this.semVidasFeito = false; this.querRecomecar = false; this.camPos = null; this.camAlvo = null;
     this.yaw = 0; this.pitch = 0.38; this.olhar = 0; this.ops = 0; this.linha = 0; this.fase = 'setup';
     this.cena = new T.Scene(); this.jog = null;
-    const corpo = this.prog.corpo;
+    const corpo = this.corpoAtual();
     for (const n of corpo) n._topo = true;
     this.inicioLinha = 0;
 
@@ -575,6 +583,8 @@ class Motor {
     this.checarVidas();
     if (this.objs.length > 60 && this.objs.filter(o => !o.vivo).length > 30) this.objs = this.objs.filter(o => o.vivo);
     if (this.vitoriaEm && this.tempo >= this.vitoriaEm && !this.fim) this.terminar(true, 'Fenda do portal fechada! 🌀');
+    if (this.querFase != null) { const i = this.querFase; this.querFase = null; this.jogarFase(i); return; }
+    if (this.querMenu) { this.querMenu = false; this.mostrarMenu(); return; }
     if (this.querRecomecar) this.recomecar();
   }
   atualizarJogador(dt) {
@@ -954,6 +964,17 @@ class Motor {
     switch (n.tipo) {
       case 'jogo': c.modo = n.modo; break;
       case 'habilidades': c.hab = new Set(n.hab); break;
+      case 'titulo': break;
+      case 'proximaFase':
+        if (this.fases && this.fases.length && !this.modoEditor) { if (this.faseAtual + 1 < this.fases.length) { this.salvarFase(); this.querFase = this.faseAtual + 1; } else this.terminar(true); }
+        else this.terminar(true);
+        break;
+      case 'irFase': {
+        if (!this.fases || !this.fases.length || this.modoEditor) break;
+        const i = typeof n.alvo === 'number' ? n.alvo - 1 : this.fases.findIndex(f => f.nome === n.alvo);
+        if (i >= 0) this.querFase = i; break;
+      }
+      case 'menu': if (this.fases && this.fases.length && !this.modoEditor) this.querMenu = true; break;
       case 'ceu':
         c.ceu = n.cor; c.ceuPreset = n.preset || null;
         if (this.fase === 'jogo') { this.cena.background.set(n.cor); this.cena.fog.color.set(n.cor); }
@@ -1143,11 +1164,131 @@ class Motor {
     if (!this.objAtual()) this.terminar(true, 'Você venceu! 🏆');
     else this.comecarObj(this.objAtual());
   }
+  // ---------------- fases, menu e telas (tipo um jogo de verdade) ----------------
+  separarFases(prog) {
+    this.fases = prog.corpo.filter(n => n.tipo === 'fase');
+    this.globais = prog.corpo.filter(n => n.tipo !== 'fase');
+    const t = prog.corpo.find(n => n.tipo === 'titulo');
+    this.titulo = t ? t.texto : null;
+    if (this.faseAtual == null || this.faseAtual >= this.fases.length) this.faseAtual = 0;
+  }
+  corpoAtual() {
+    if (!this.fases || !this.fases.length) return this.prog.corpo;
+    return [...this.globais, ...this.fases[this.faseAtual].corpo];
+  }
+  chaveSave() { return 'frogcode.save.' + (this.titulo || 'jogo'); }
+  lerSave() {
+    try { const s = JSON.parse(localStorage.getItem(this.chaveSave())); if (s && s.zeradas) return s; } catch (e) { }
+    return { zeradas: {}, recordes: {} };
+  }
+  gravarSave() { try { localStorage.setItem(this.chaveSave(), JSON.stringify(this.save)); } catch (e) { } }
+  liberada(i) { return this.opts.liberarTudo || i === 0 || !!this.save.zeradas[this.fases[i - 1].nome]; }
+  estatisticas() {
+    const n = k => Math.round(+this.vars.get(k) || 0);
+    return { pontos: n('pontos'), moscas: n('moscas'), cristais: n('cristais'), tempo: Math.round(this.tempo) };
+  }
+  salvarFase() {
+    const f = this.fases[this.faseAtual], st = this.estatisticas(), r = this.save.recordes[f.nome] || {};
+    this.save.zeradas[f.nome] = true;
+    for (const k of ['pontos', 'moscas', 'cristais']) r[k] = Math.max(r[k] || 0, st[k]);
+    r.tempo = r.tempo ? Math.min(r.tempo, st.tempo) : st.tempo;
+    this.save.recordes[f.nome] = r; this.gravarSave();
+  }
+  estiloTelas() {
+    if (document.getElementById('fc-telas-css')) return;
+    const st = document.createElement('style'); st.id = 'fc-telas-css';
+    st.textContent = `
+.fc-tela{position:absolute;inset:0;z-index:4;display:flex;align-items:center;justify-content:center;background:radial-gradient(circle at 50% 30%,#0008,#000c);padding:16px;font-family:"Trebuchet MS","Segoe UI",sans-serif;color:#fff;overflow:auto}
+.fc-caixa{text-align:center;max-width:720px;width:100%}
+.fc-caixa h1{margin:0 0 6px;font-size:clamp(26px,6vw,48px);color:#7ed957;text-shadow:0 4px 0 #0007}
+.fc-caixa h1.ruim{color:#ff8a80} .fc-caixa .sub{color:#c9d3dd;margin:0 0 14px;font-size:15px}
+.fc-bts{display:flex;gap:10px;justify-content:center;flex-wrap:wrap;margin-top:16px}
+.fc-bts button,.fc-carta{font:inherit;cursor:pointer;border:0;border-radius:12px;color:#fff}
+.fc-bts button{font-size:17px;font-weight:700;padding:11px 22px;background:#3c4652;box-shadow:0 4px 0 #222a33}
+.fc-bts button.fc-princ{background:#2f7d32;box-shadow:0 4px 0 #1b4d1d;font-size:19px}
+.fc-bts button:active,.fc-carta:active{transform:translateY(2px)}
+.fc-cartas{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px;margin-top:8px}
+.fc-carta{background:#24303c;box-shadow:0 4px 0 #151c24;padding:12px 10px;text-align:left;min-height:92px;position:relative}
+.fc-carta b{display:block;font-size:13px;color:#ffd400} .fc-carta span{display:block;font-size:16px;font-weight:700;margin:2px 0 6px}
+.fc-carta small{color:#9fb0c0;font-size:12px} .fc-carta.feita{background:#1f3a24;box-shadow:0 4px 0 #13251a}
+.fc-carta.trancada{opacity:.45;cursor:default} .fc-carta .selo{position:absolute;right:10px;top:8px;font-size:18px}
+.fc-stats{display:flex;gap:18px;justify-content:center;flex-wrap:wrap;font-size:18px;margin:10px 0} .fc-stats div{background:#0006;padding:8px 14px;border-radius:10px}
+.fc-pausa{position:absolute;top:10px;left:50%;transform:translateX(-50%);z-index:3;font:inherit;font-size:18px;border:0;border-radius:10px;background:#0008;color:#fff;padding:4px 12px;cursor:pointer}`;
+    document.head.appendChild(st);
+  }
+  mostrarTela(html, botoes = []) {
+    this.estiloTelas(); this.fecharTela();
+    const d = document.createElement('div'); d.className = 'fc-tela';
+    d.innerHTML = `<div class="fc-caixa">${html}<div class="fc-bts"></div></div>`;
+    for (const [txt, fn, principal] of botoes) {
+      const b = document.createElement('button'); b.textContent = txt; if (principal) b.className = 'fc-princ';
+      b.onclick = () => { audio(); fn(); }; d.querySelector('.fc-bts').appendChild(b);
+    }
+    this.cv.parentElement.appendChild(d); this.telaEl = d;
+    setTimeout(() => (d.querySelector('.fc-princ') || d.querySelector('button'))?.focus(), 30);
+    return d;
+  }
+  fecharTela() { if (this.telaEl) { this.telaEl.remove(); this.telaEl = null; } }
+  botaoPausa(mostrar) {
+    if (!mostrar) { this.btnPausa?.remove(); this.btnPausa = null; return; }
+    if (this.btnPausa) return;
+    this.estiloTelas();
+    const b = document.createElement('button'); b.className = 'fc-pausa'; b.textContent = '⏸'; b.title = 'Pausa (Esc)';
+    b.onclick = () => this.pausar(); this.cv.parentElement.appendChild(b); this.btnPausa = b;
+  }
+  mostrarTitulo() {
+    this.estado = 'titulo'; this.botaoPausa(false);
+    const nome = this.titulo || 'Meu jogo', zer = this.fases.filter(f => this.save.zeradas[f.nome]).length;
+    this.mostrarTela(`<h1>${esc(nome)}</h1><p class="sub">${this.fases.length} fase${this.fases.length > 1 ? 's' : ''}${zer ? ` · ${zer} zerada${zer > 1 ? 's' : ''}` : ''}</p>`,
+      [['▶ Jogar', () => (this.fases.length > 1 ? this.mostrarMenu() : this.jogarFase(0)), true]]);
+  }
+  mostrarMenu() {
+    this.estado = 'menu'; this.botaoPausa(false); this.rodando = false;
+    const cartas = this.fases.map((f, i) => {
+      const lib = this.liberada(i), feita = this.save.zeradas[f.nome], r = this.save.recordes[f.nome];
+      const rec = r ? `${r.moscas || 0} moscas · ${r.cristais || 0} cristais · ${r.tempo}s` : lib ? 'ainda não zerada' : 'zere a fase anterior';
+      return `<button class="fc-carta ${feita ? 'feita' : ''} ${lib ? '' : 'trancada'}" data-i="${i}" ${lib ? '' : 'disabled'}><b>FASE ${i + 1}</b><span>${esc(f.rotulo)}</span><small>${rec}</small><div class="selo">${feita ? '✔' : lib ? '' : '🔒'}</div></button>`;
+    }).join('');
+    const d = this.mostrarTela(`<h1>${esc(this.titulo || 'Escolha a fase')}</h1><p class="sub">Escolha a fase</p><div class="fc-cartas">${cartas}</div>`, [['⬅ Voltar', () => this.mostrarTitulo()]]);
+    d.querySelectorAll('.fc-carta').forEach(c => c.onclick = () => { if (!c.disabled) { audio(); this.jogarFase(+c.dataset.i); } });
+    setTimeout(() => d.querySelector('.fc-carta:not([disabled])')?.focus(), 40);
+  }
+  jogarFase(i) {
+    this.fecharTela(); this.faseAtual = i; this.pausado = false;
+    try { this.recomecar(); } catch (e) { this.falhar(e); return; }
+    this.estado = 'jogando'; this.botaoPausa(true);
+    if (this.fases.length > 1) this.msg = { txt: `Fase ${i + 1}: ${this.fases[i].rotulo}`, ate: this.tempo + 2.5 };
+    this.cv.focus();
+  }
+  pausar() {
+    if (this.estado !== 'jogando' || this.fim) return;
+    this.pausado = true; this.estado = 'pausa'; this.teclas.clear(); this.botaoPausa(false);
+    this.mostrarTela(`<h1>⏸ Pausa</h1><p class="sub">${esc(this.fases[this.faseAtual].rotulo)}</p>`, [
+      ['▶ Continuar', () => { this.fecharTela(); this.pausado = false; this.estado = 'jogando'; this.botaoPausa(true); this.cv.focus(); }, true],
+      ['↺ Recomeçar a fase', () => this.jogarFase(this.faseAtual)],
+      ['☰ Menu', () => this.mostrarMenu()]]);
+  }
+  fimDeFase(ganhou, msg) {
+    this.botaoPausa(false);
+    const f = this.fases[this.faseAtual], ultima = this.faseAtual === this.fases.length - 1, st = this.estatisticas();
+    if (ganhou) {
+      this.salvarFase();
+      const stats = `<div class="fc-stats"><div>${st.moscas} moscas</div><div>💎 ${st.cristais} cristais</div><div>⭐ ${st.pontos} pontos</div><div>⏱ ${st.tempo}s</div></div>`;
+      this.estado = 'fimFase';
+      if (ultima) this.mostrarTela(`<h1>🏆 Você zerou o jogo!</h1><p class="sub">${esc(msg || f.rotulo)}</p>${stats}`, [['☰ Menu', () => this.mostrarMenu(), true], ['↺ Jogar de novo', () => this.jogarFase(this.faseAtual)]]);
+      else this.mostrarTela(`<h1>Fase completa! 🎉</h1><p class="sub">${esc(msg || f.rotulo)}</p>${stats}`, [['Próxima fase ▶', () => this.jogarFase(this.faseAtual + 1), true], ['↺ De novo', () => this.jogarFase(this.faseAtual)], ['☰ Menu', () => this.mostrarMenu()]]);
+    } else {
+      this.estado = 'gameover';
+      this.mostrarTela(`<h1 class="ruim">${esc(msg || 'Fim de jogo 💀')}</h1><p class="sub">${esc(f.rotulo)}</p>`, [['↺ Tentar de novo', () => this.jogarFase(this.faseAtual), true], ['☰ Menu', () => this.mostrarMenu()]]);
+    }
+  }
   terminar(ganhou, msg) {
     if (this.fim) return;
-    this.fim = { ganhou, msg };
+    const comFases = this.fases && this.fases.length && !this.modoEditor;
+    this.fim = { ganhou, msg, fase: !!comFases };
     (ganhou ? SOM.ganhou : SOM.perdeu)();
     if (document.pointerLockElement) document.exitPointerLock();
+    if (comFases) { const f = this.fim; this.botaoPausa(false); setTimeout(() => { if (this.fim === f) this.fimDeFase(ganhou, msg); }, 800); }
   }
   falhar(e) {
     const err = e instanceof FC.ErroFC ? e : new FC.ErroFC('Erro interno: ' + e.message, this.linha);
@@ -1204,6 +1345,7 @@ class Motor {
   // ---------------- HUD (placar, objetivo, mensagens) ----------------
   desenharHud() {
     if (!this.cfg) return;
+    if (this.telaEl && this.estado !== 'pausa') { if (this.hudTxt) { this.hud.innerHTML = ''; this.hudTxt = ''; } return; } // menu/título/fim por cima: sem placar
     const esc = s => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;');
     let h = '<div class="hud-vars">';
     for (const nome of this.cfg.mostrar) {
@@ -1224,7 +1366,7 @@ class Motor {
       if (toque) h += `<div class="hud-dica" style="bottom:150px">🕹️ joystick: andar · ⤒ pular${hk}${cam === 'atras' || cam === 'primeira' ? ' · arraste a tela: girar a câmera' : ''}</div>`;
       else h += `<div class="hud-dica">${m === 'lado' ? '← → andar · Espaço pular (segure = mais alto) · Shift correr' : 'WASD ou setas: andar · Espaço: pular · Shift: correr'}${hk}${cam === 'atras' ? ' · arraste o mouse: girar a câmera' : cam === 'primeira' ? ' · clique: olhar com o mouse' : ''}</div>`;
     }
-    if (this.fim) h += `<div class="hud-fim ${this.fim.ganhou ? 'ganhou' : ''}"><div>${esc(this.fim.msg)}</div>${this.fim.erro ? '' : '<small>aperte R pra jogar de novo</small>'}</div>`;
+    if (this.fim && !this.fim.fase) h += `<div class="hud-fim ${this.fim.ganhou ? 'ganhou' : ''}"><div>${esc(this.fim.msg)}</div>${this.fim.erro ? '' : '<small>aperte R pra jogar de novo</small>'}</div>`;
     if (h !== this.hudTxt) { this.hud.innerHTML = h; this.hudTxt = h; }
   }
 }

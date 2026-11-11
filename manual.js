@@ -440,6 +440,36 @@ criar fenda em 60 0</pre>
 <li><code>totem</code>: checkpoint. Encostou, ele acende e vira o lugar onde você volta.</li>
 <li><code>buraco de A até B</code>: corta o chão. Cair lá tira 1 vida e volta pro último totem.</li>
 <li><code>fenda</code>: fenda do portal dos gigantes. Encostou, ela fecha. Sem objetivos, fechar a fenda vence a fase; com objetivo: <code>objetivo1: fechar a fenda</code>.</li></ul>` },
+{ id: 'fases', titulo: '14. Fases, menu e save 🗺', html: `
+<p>Um jogo de verdade tem várias fases. O que fica <b>fora</b> das fases vale pro jogo todo; o que fica <b>dentro</b> (2 espaços pra direita) é só daquela fase.</p>
+<pre>jogo: 2D de lado
+título: Kroad e as Fendas
+jogador: sapo
+habilidades: linguada, investida
+
+fase Bosque do Brejo:
+  céu: tarde
+  chão: grama 80
+  jogador em: -35 0
+  criar 4 moscas espalhadas
+  criar fenda em 30 0
+
+fase Caverna Antiga:
+  céu: noite
+  chão: pedra 60
+  criar fenda em 20 0</pre>
+<ul>
+<li>Com fases, o jogo ganha sozinho: <b>tela de título</b>, <b>menu de fases</b> (cada fase só libera quando você zera a anterior), <b>pausa</b> (<kbd>Esc</kbd> ou o botão ⏸), <b>fase completa</b> com moscas/cristais/pontos/tempo, <b>game over</b> e <b>save</b> (fases zeradas e recordes ficam guardados).</li>
+<li>A fase acaba quando você <b>ganha</b>: fechando a <code>fenda</code>, completando os objetivos ou com <code>ganhar</code>.</li>
+<li><code>título: ...</code> é o nome do jogo (aparece na tela de título e no Publicar).</li>
+<li>Pra testar, no editor todas as fases ficam liberadas.</li>
+<li>Na <b>🎬 Cena</b> aparece um seletor 🗺 pra escolher qual fase montar. O que você adiciona entra dentro daquela fase.</li>
+</ul>
+<h4>Trocar de fase pelo código</h4>
+<ul><li><code>próxima fase</code>: conta a fase como zerada e vai pra seguinte.</li>
+<li><code>ir para fase 2</code> ou <code>ir para fase Caverna Antiga</code>.</li>
+<li><code>voltar ao menu</code>.</li></ul>
+<p><code>jogo:</code>, <code>título:</code>, <code>modelo</code> e <code>ensinar</code> ficam fora das fases.</p>` },
 ];
 
 // sugestões que aparecem enquanto digita
@@ -459,6 +489,7 @@ const SUGESTOES = [
   'mover zé para frente 2', 'andar isso para frente', 'andar isso até jogador', 'andar isso para longe do jogador', 'pular zé', 'girar zé 90', 'virar zé para jogador', 'levar zé até jogador', 'derrotar aquilo',
   'para cada inimigo:', 'quando bala tocar inimigo:', 'ensinar atirar:', 'modelo boneco:', 'se existe zé:', 'se distância até jogador menor que 8:', 'zé.vida - 1', 'zé.cor = vermelho', 'aquilo.vida - 1',
   'habilidades: linguada, investida', 'criar mosca em 5 1.5', 'criar cristal em 10 3', 'criar galho em 20 5.5', 'criar rocha em 25 0', 'criar vitória-régia em 32 0.3', 'criar vagem em 38 0', 'criar totem em 42 0', 'criar buraco de 14 até 22', 'criar fenda em 60 0', 'objetivo1: fechar a fenda',
+  'título: Meu Jogo', 'fase Bosque:', 'próxima fase', 'ir para fase 2', 'voltar ao menu',
   'tremer tela', 'completar objetivo', 'ganhar "Você venceu!"', 'perder "Fim de jogo!"', 'recomeçar', 'pontos + 1', 'vidas - 1',
 ];
 

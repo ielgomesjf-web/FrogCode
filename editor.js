@@ -327,6 +327,7 @@ function pegarMotor() {
     saida('❌ Não consegui carregar o 3D (Three.js). Precisa de internet na primeira vez que abre.', 'er'); painel('saida'); return null;
   }
   if (!motor) motor = new Motor($('#cv'), $('#hud'), {
+    liberarTudo: true, // no editor, todas as fases ficam liberadas pra testar
     erro: e => {
       errosDeJogo = [{ linha: e.linha || 0, msg: '💥 ' + e.message, nivel: 'erro' }];
       saida(`❌ Linha ${e.linha}: ${e.message}`, 'er'); checar(); painel('prob');

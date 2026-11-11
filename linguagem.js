@@ -91,7 +91,7 @@ function distancia(a, b) { // pra sugerir "você quis dizer..."
 }
 const PRIMEIRAS = ['jogo', 'ceu', 'chao', 'luz', 'gravidade', 'jogador', 'camera', 'criar', 'objetivo', 'mostrar', 'inimigos',
   'velocidade', 'pulo', 'quando', 'se', 'senao', 'sempre', 'repetir', 'som', 'ganhar', 'perder', 'mensagem', 'esperar',
-  'remover', 'recomecar', 'completar', 'tremer', 'levar', 'voltar', 'vidas', 'pontos', 'mover', 'andar', 'girar', 'virar', 'pular', 'ensinar', 'modelo', 'para', 'derrotar', 'habilidades'];
+  'remover', 'recomecar', 'completar', 'tremer', 'levar', 'voltar', 'vidas', 'pontos', 'mover', 'andar', 'girar', 'virar', 'pular', 'ensinar', 'modelo', 'para', 'derrotar', 'habilidades', 'fase', 'titulo'];
 
 // ---------------- contas (expressões) ----------------
 function tokensConta(s, strs) {
@@ -226,7 +226,7 @@ class Parser {
       this.L.push({ n: i + 1, ind: s.match(/^[ \t]*/)[0].replace(/\t/g, '  ').length, raw: s.trim() });
     });
     this.i = 0; this.erros = []; this.refs = []; this.declaradas = new Set(PRONTAS);
-    this.linhaAtual = 0; this.prof = 0; this.emModelo = false;
+    this.linhaAtual = 0; this.prof = 0; this.emModelo = false; this.emFase = false;
     // primeiro passa o olho no código todo pra conhecer os nomes inventados
     this.nomes = new Set(['jogador', 'isso', 'aquilo']); this.ensinados = new Map(); this.modelos = new Set();
     const limpo = w => w.replace(/[^a-z0-9_]/g, '');
@@ -250,6 +250,14 @@ class Parser {
     const corpo = this.bloco(this.L.length ? this.L[0].ind : 0);
     for (const r of this.refs) if (!this.declaradas.has(r.v))
       this.erros.push({ linha: r.n, msg: `Não conheço "${r.v}". Se for uma variável, crie ela no começo, tipo:  ${r.v}: 0`, nivel: 'erro' });
+    const fases = corpo.filter(n => n.tipo === 'fase'), vistas = new Set();
+    for (const f of fases) { if (vistas.has(f.nome)) this.erros.push({ linha: f.n, msg: `Já existe uma fase chamada "${f.rotulo}"`, nivel: 'erro' }); vistas.add(f.nome); }
+    const procurar = lista => { for (const n of lista || []) {
+      if (n.tipo === 'irFase' && typeof n.alvo === 'string' && !vistas.has(n.alvo)) this.erros.push({ linha: n.n, msg: `Não existe fase chamada "${n.alvo}"`, nivel: 'erro' });
+      if (n.tipo === 'irFase' && typeof n.alvo === 'number' && (n.alvo < 1 || n.alvo > fases.length)) this.erros.push({ linha: n.n, msg: `Não existe a fase ${n.alvo} (o jogo tem ${fases.length})`, nivel: 'erro' });
+      procurar(n.corpo); procurar(n.senao);
+    } };
+    procurar(corpo);
     this.erros.sort((a, b) => a.linha - b.linha);
     return { corpo, erros: this.erros };
   }
@@ -314,12 +322,23 @@ class Parser {
   linha(l) {
     const s = semAcento(l.raw);
     if (this.emModelo) return this.parte(preparar(l.raw));
+    if (/^fase\b/.test(s) && /:\s*$/.test(tirarComentario(l.raw).trim())) { // fase Bosque do Brejo:
+      if (this.prof > 0 || this.emFase) throw erro('"fase" fica no começo da linha, fora de outros blocos (e uma fase não fica dentro de outra)');
+      const rotulo = dividirDoisPontos(l.raw).cab.replace(/^\s*fase\s+/i, '').trim();
+      if (!rotulo) throw erro('Faltou o nome da fase (ex: fase Bosque:)');
+      const no = { tipo: 'fase', nome: semAcento(rotulo), rotulo, cabecalho: l.raw, corpo: [] };
+      this.emFase = true;
+      try { if (this.i < this.L.length && this.L[this.i].ind > l.ind) no.corpo = this.bloco(this.L[this.i].ind); } finally { this.emFase = false; }
+      no.fim = this.i > 0 ? Math.max(l.n, this.L[this.i - 1].n) : l.n;
+      return no;
+    }
     if (/^(quando|a cada|se|senao|sempre|repetir|para cada|ensinar|modelo)\b/.test(s)) {
       const { cab, resto } = dividirDoisPontos(l.raw);
       const p = preparar(cab);
       const no = this.cabecalho(p, l);
       if (no.tipo === 'modelo') {
         if (this.prof > 0) throw erro('"modelo" fica no começo da linha, fora de outros blocos');
+        if (this.emFase) throw erro('"modelo" fica fora das fases (aí ele vale pro jogo todo)');
         this.emModelo = true;
         // modelo pode começar vazio (sem nenhuma peça embaixo)
         const temPecas = this.i < this.L.length && this.L[this.i].ind > l.ind;
@@ -371,7 +390,7 @@ class Parser {
     };
     if ((m = t.match(/^modelo (\S+)$/))) return { tipo: 'modelo', nome: m[1] };
     if ((m = t.match(/^ensinar (\S+)(.*)$/))) {
-      topo(); return { tipo: 'ensinar', nome: m[1], params: m[2].trim() ? m[2].trim().split(' ') : [] };
+      topo(); if (this.emFase) throw erro('"ensinar" fica fora das fases (aí o comando vale pro jogo todo)'); return { tipo: 'ensinar', nome: m[1], params: m[2].trim() ? m[2].trim().split(' ') : [] };
     }
     if ((m = t.match(/^para cada (?:um |uma )?(?:dos |das |de )?(\S+)$/))) return { tipo: 'cada', alvo: this.alvo(m[1]) };
     if ((m = t.match(/^quando (?!eu |o jogador )(?:o |a )?(\S+) (?:tocar|encostar|bater) (?:n[oa]s? |em |um |uma |o |a )?(\S+)$/))) {
@@ -399,13 +418,22 @@ class Parser {
     const soNoTopo = nome => { if (this.prof > 0) throw erro(`"${nome}" só pode ficar no começo do jogo, fora dos blocos`); };
 
     if ((m = t.match(/^jogo (.+)$/))) {
-      soNoTopo('jogo');
+      soNoTopo('jogo'); if (this.emFase) throw erro('"jogo:" fica fora das fases, no começo (vale pro jogo todo)');
       const v = m[1];
       if (v === 'tresd') return { tipo: 'jogo', modo: '3d', cfg: true };
       if (/^doisd( de lado)?$|^de lado$/.test(v)) return { tipo: 'jogo', modo: 'lado', cfg: true };
       if (/^doisd de cima$|^de cima$/.test(v)) return { tipo: 'jogo', modo: 'cima', cfg: true };
       throw erro('O jogo pode ser: 3D, 2D de lado ou 2D de cima');
     }
+    if (/^(?:titulo|titulo do jogo|nome do jogo) /.test(t)) {
+      soNoTopo('título'); if (this.emFase) throw erro('"título:" fica fora das fases (é o nome do jogo todo)');
+      const texto = dividirDoisPontos(l.raw).resto.trim().replace(/^["'“]|["'”]$/g, '');
+      if (!texto) throw erro('Faltou o nome do jogo (ex: título: Ribbat Origem)');
+      return { tipo: 'titulo', texto, cfg: true };
+    }
+    if (/^(?:proxima fase|ir para a proxima fase|ir pra proxima fase|passar de fase)$/.test(t)) return { tipo: 'proximaFase' };
+    if ((m = t.match(/^(?:ir|voltar) (?:para|pra) (?:a )?fase (.+)$/))) return { tipo: 'irFase', alvo: /^\d+$/.test(m[1]) ? +m[1] : m[1] };
+    if (/^(?:voltar|ir) (?:ao|para o|pro|pra o) menu$/.test(t)) return { tipo: 'menu' };
     if ((m = t.match(/^(?:ceu|fundo|cor do ceu) (.+)$/))) {
       const v = m[1];
       if (CEUS[v]) return { tipo: 'ceu', cor: CEUS[v], preset: v, cfg: true };
